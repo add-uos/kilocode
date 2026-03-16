@@ -66,9 +66,27 @@ export const CodebaseSearchTool = Tool.define("codebase_search", {
       }
     }
 
-    const output = result.contexts
+    const MAX_OUTPUT_CHARS = 45_000
+    const fullOutput = result.contexts
       .map((c) => `### ${c.file}\n\`\`\`\n${c.content}\n\`\`\``)
       .join("\n\n")
+
+    let output: string
+    if (fullOutput.length > MAX_OUTPUT_CHARS) {
+      const summary = result.contexts
+        .map((c) => {
+          const lineInfo = !c.lines
+            ? ""
+            : c.lines === "*"
+              ? " (full file)"
+              : ` (lines ${c.lines.map((r) => r.join("-")).join(", ")})`
+          return `- ${c.file}${lineInfo}`
+        })
+        .join("\n")
+      output = `Results too large to show inline. Showing file paths and line ranges. Use Read tool to view specific files.\n\n${summary}`
+    } else {
+      output = fullOutput
+    }
 
     return {
       title: `Codebase Search: ${params.query}`,
