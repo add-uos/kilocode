@@ -127,10 +127,27 @@ export function checkedOutBranchesFromWorktreeList(raw: string): Set<string> {
   return result
 }
 
-const SAFE_GIT_REF = /^[a-zA-Z0-9._\-/]+$/
+/**
+ * Characters forbidden by git-check-ref-format(1) plus shell metacharacters.
+ * Covers: space, control chars (0x00-0x1F, 0x7F), tilde, caret, colon,
+ * question mark, asterisk, open bracket, backslash, and shell-dangerous
+ * characters (backtick, dollar, pipe, semicolon, ampersand, parens, braces,
+ * angle brackets, single/double quotes, newline/tab already covered by
+ * control chars).
+ */
+const UNSAFE_REF_CHARS = /[\x00-\x1f\x7f ~^:?*[\\\t\n`$|;&(){}<>'"]/
 
 export function validateGitRef(value: string, label: string): void {
-  if (!value || !SAFE_GIT_REF.test(value) || value.startsWith("-") || value.includes("..")) {
+  if (
+    !value ||
+    UNSAFE_REF_CHARS.test(value) ||
+    value.startsWith("-") ||
+    value.includes("..") ||
+    value.endsWith(".lock") ||
+    value.endsWith(".") ||
+    value.startsWith(".") ||
+    value.includes("@{")
+  ) {
     throw new Error(`Unsafe ${label}: "${value}"`)
   }
 }

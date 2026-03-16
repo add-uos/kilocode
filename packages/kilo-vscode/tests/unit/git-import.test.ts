@@ -367,6 +367,16 @@ describe("validateGitRef", () => {
     expect(() => validateGitRef("user_name", "owner")).not.toThrow()
   })
 
+  it("accepts branch names with non-ASCII unicode characters", () => {
+    expect(() => validateGitRef("feat/Genomf\u00F6randeplan", "branch")).not.toThrow()
+    expect(() =>
+      validateGitRef("IP-12867-Genomf\u00F6randeplan-\u2014-\u201CRensa-vid-ny-revision\u201D", "branch"),
+    ).not.toThrow()
+    expect(() => validateGitRef("\u4E3B\u8981", "branch")).not.toThrow()
+    expect(() => validateGitRef("fix/caf\u00E9-bug", "branch")).not.toThrow()
+    expect(() => validateGitRef("@", "branch")).not.toThrow()
+  })
+
   it("rejects values starting with a dash (git flag injection)", () => {
     expect(() => validateGitRef("--upload-pack=evil", "ref")).toThrow('Unsafe ref: "--upload-pack=evil"')
     expect(() => validateGitRef("-b", "ref")).toThrow('Unsafe ref: "-b"')
@@ -394,6 +404,23 @@ describe("validateGitRef", () => {
   it("rejects values containing .. (git ref traversal)", () => {
     expect(() => validateGitRef("foo/../bar", "ref")).toThrow()
     expect(() => validateGitRef("..hidden", "ref")).toThrow()
+  })
+
+  it("rejects git-invalid ref patterns", () => {
+    expect(() => validateGitRef("branch.lock", "ref")).toThrow()
+    expect(() => validateGitRef(".hidden", "ref")).toThrow()
+    expect(() => validateGitRef("trailing.", "ref")).toThrow()
+    expect(() => validateGitRef("foo@{0}", "ref")).toThrow()
+  })
+
+  it("rejects values with git-forbidden characters", () => {
+    expect(() => validateGitRef("foo~bar", "ref")).toThrow()
+    expect(() => validateGitRef("foo^bar", "ref")).toThrow()
+    expect(() => validateGitRef("foo:bar", "ref")).toThrow()
+    expect(() => validateGitRef("foo?bar", "ref")).toThrow()
+    expect(() => validateGitRef("foo*bar", "ref")).toThrow()
+    expect(() => validateGitRef("foo[bar", "ref")).toThrow()
+    expect(() => validateGitRef("foo\\bar", "ref")).toThrow()
   })
 })
 
