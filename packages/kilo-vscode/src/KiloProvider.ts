@@ -1,4 +1,3 @@
-import * as os from "os"
 import * as path from "path"
 import * as vscode from "vscode"
 import { z } from "zod"
@@ -656,8 +655,8 @@ export class KiloProvider implements vscode.WebviewViewProvider, TelemetryProper
         }
         case "installMarketplaceItem": {
           const workspace = this.getProjectDirectory(this.currentSession?.id)
-          const mp = this.getMarketplace()
-          const result = await mp.install(message.mpItem, message.mpInstallOptions, workspace)
+          const result = await this.getMarketplace().install(message.mpItem, message.mpInstallOptions, workspace)
+          if (result.success) await this.disposeCliInstance()
           this.postMessage({
             type: "marketplaceInstallResult",
             success: result.success,
@@ -669,27 +668,14 @@ export class KiloProvider implements vscode.WebviewViewProvider, TelemetryProper
         case "removeInstalledMarketplaceItem": {
           const workspace = this.getProjectDirectory(this.currentSession?.id)
           const scope = message.mpInstallOptions?.target ?? "project"
-
-          if (message.mpItem.type === "skill") {
-            // Route skill removal through the CLI backend so the skill
-            // registry and cache are properly invalidated.
-            const base =
-              scope === "project"
-                ? path.join(workspace!, ".kilo", "skills")
-                : path.join(os.homedir(), ".kilo", "skills")
-            const location = path.join(base, message.mpItem.id, "SKILL.md")
-            const success = await this.removeSkillViaCli(location)
-            if (success) vscode.window.showInformationMessage(`Successfully removed ${message.mpItem.name}`)
-            this.postMessage({ type: "marketplaceRemoveResult", success, slug: message.mpItem.id })
-          } else {
-            const result = await this.getMarketplace().remove(message.mpItem, scope, workspace)
-            this.postMessage({
-              type: "marketplaceRemoveResult",
-              success: result.success,
-              slug: result.slug,
-              error: result.error,
-            })
-          }
+          const result = await this.getMarketplace().remove(message.mpItem, scope, workspace)
+          if (result.success) await this.disposeCliInstance()
+          this.postMessage({
+            type: "marketplaceRemoveResult",
+            success: result.success,
+            slug: result.slug,
+            error: result.error,
+          })
           break
         }
       }
@@ -1267,6 +1253,18 @@ export class KiloProvider implements vscode.WebviewViewProvider, TelemetryProper
     // Invalidate cache so next requestAgents fetches fresh data
     this.cachedAgentsMessage = null
     await this.fetchAndSendAgents()
+  }
+
+  /**
+   * Dispose the CLI backend instance so it re-reads config from disk.
+   * Call after any marketplace install/remove that writes config files directly.
+   */
+  private async disposeCliInstance(): Promise<void> {
+    if (!this.client) return
+    const dir = this.getWorkspaceDirectory()
+    await this.client.instance.dispose({ directory: dir }).catch((e: unknown) => {
+      console.warn("[Kilo New] instance.dispose() after marketplace change failed:", e)
+    })
   }
 
   /**
