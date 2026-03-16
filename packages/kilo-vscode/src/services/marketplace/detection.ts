@@ -1,4 +1,5 @@
 import * as fs from "fs/promises"
+import * as path from "path"
 import type { MarketplaceInstalledMetadata } from "./types"
 import { MarketplacePaths } from "./paths"
 
@@ -35,11 +36,18 @@ export class InstallationDetector {
     return { project, global }
   }
 
+  private isProjectSkill(location: string, workspace: string): boolean {
+    const prefix = workspace.endsWith(path.sep) ? workspace : workspace + path.sep
+    return location.startsWith(prefix)
+  }
+
   private skillEntries(skills: CliSkill[] | undefined, workspace: string | undefined, project: boolean): Entry[] {
     if (!skills) return []
     return skills
       .filter((s) =>
-        project ? workspace && s.location.startsWith(workspace) : !workspace || !s.location.startsWith(workspace),
+        project
+          ? !!workspace && this.isProjectSkill(s.location, workspace)
+          : !workspace || !this.isProjectSkill(s.location, workspace),
       )
       .map((s) => [s.name, { type: "skill" }])
   }

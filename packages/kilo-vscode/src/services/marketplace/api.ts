@@ -27,11 +27,12 @@ function parseResponse(text: string): unknown {
 }
 
 function transformSkill(raw: RawSkill): SkillMarketplaceItem {
+  const display = kebabToTitleCase(raw.id)
   return {
     type: "skill" as const,
     id: raw.id,
-    name: raw.id,
-    displayName: kebabToTitleCase(raw.id),
+    name: display,
+    displayName: display,
     description: raw.description,
     category: raw.category,
     displayCategory: kebabToTitleCase(raw.category),
