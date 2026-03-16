@@ -34,8 +34,8 @@ import {
   flushPendingSessionRefresh as flushPendingSessionRefreshUtil,
   type SessionRefreshContext,
 } from "./kilo-provider-utils"
-import { MarketplaceService } from "./services/marketplace" // kilocode_change
-import { resolveProjectDirectory } from "./project-directory" // kilocode_change
+import { MarketplaceService } from "./services/marketplace"
+import { resolveProjectDirectory } from "./project-directory"
 
 type KiloProviderOptions = {
   projectDirectory?: string | null
@@ -87,7 +87,7 @@ export class KiloProvider implements vscode.WebviewViewProvider, TelemetryProper
   /** Lazily initialized ignore controller for .kilocodeignore filtering */
   private ignoreController: FileIgnoreController | null = null
   private ignoreControllerDir: string | null = null
-  private marketplace: MarketplaceService | null = null // kilocode_change
+  private marketplace: MarketplaceService | null = null
   private projectDirectory: string | null | undefined
 
   /** Optional interceptor called before the standard message handler.
@@ -639,7 +639,6 @@ export class KiloProvider implements vscode.WebviewViewProvider, TelemetryProper
             })
           break
         }
-        // kilocode_change start — marketplace IPC handlers
         case "fetchMarketplaceData": {
           const workspace = this.getProjectDirectory(this.currentSession?.id)
           const mp = this.getMarketplace()
@@ -679,7 +678,6 @@ export class KiloProvider implements vscode.WebviewViewProvider, TelemetryProper
           })
           break
         }
-        // kilocode_change end
       }
     })
   }
@@ -1169,7 +1167,6 @@ export class KiloProvider implements vscode.WebviewViewProvider, TelemetryProper
     }
   }
 
-  // kilocode_change start — fetch CLI skills for marketplace detection
   private async fetchCliSkills(): Promise<Array<{ name: string; location: string }> | undefined> {
     if (!this.client) return undefined
     try {
@@ -1181,7 +1178,6 @@ export class KiloProvider implements vscode.WebviewViewProvider, TelemetryProper
       return undefined
     }
   }
-  // kilocode_change end
 
   private async fetchAndSendSkills(): Promise<void> {
     if (!this.client) {
@@ -2475,13 +2471,11 @@ export class KiloProvider implements vscode.WebviewViewProvider, TelemetryProper
 
   // legacy-migration end ---------------------------------------------------------
 
-  // kilocode_change start — marketplace lazy init
   private getMarketplace(): MarketplaceService {
     if (this.marketplace) return this.marketplace
     this.marketplace = new MarketplaceService()
     return this.marketplace
   }
-  // kilocode_change end
 
   /**
    * Dispose of the provider and clean up subscriptions.
@@ -2496,6 +2490,6 @@ export class KiloProvider implements vscode.WebviewViewProvider, TelemetryProper
     this.syncedChildSessions.clear()
     this.sessionDirectories.clear()
     this.ignoreController?.dispose()
-    this.marketplace?.dispose() // kilocode_change
+    this.marketplace?.dispose()
   }
 }
