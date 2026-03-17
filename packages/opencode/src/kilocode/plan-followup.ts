@@ -115,39 +115,55 @@ export namespace PlanFollowup {
   export const ANSWER_NEW_SESSION = "Start new session"
   export const ANSWER_CONTINUE = "Continue here"
 
-  async function resolveCodeModel(model: MessageV2.User["model"]) {
-    const saved =
+  function resolveVariant(input: { value: string | undefined; model: Provider.Model | undefined }) {
+    if (!input.value) return undefined
+    if (!input.model?.variants?.[input.value]) return undefined
+    return input.value
+  }
+
+  async function resolveCodeModel(input: Pick<MessageV2.User, "model" | "variant">) {
+    const state =
       Flag.KILO_CLIENT === "cli"
         ? await fs
             .readFile(path.join(Global.Path.state, "model.json"), "utf-8")
             .then(
               (item) =>
                 JSON.parse(item) as {
-                  model?: Record<
-                    string,
-                    {
-                      providerID: string
-                      modelID: string
-                    }
-                  >
+                  model?: Record<string, MessageV2.User["model"]>
+                  variant?: Record<string, string | undefined>
                 },
             )
-            .then((item) => item.model?.code)
             .catch(() => undefined)
         : undefined
+    const saved = state?.model?.code
     if (saved) {
-      const match = await Provider.getModel(saved.providerID, saved.modelID).catch(() => undefined)
-      if (match) {
+      const full = await Provider.getModel(saved.providerID, saved.modelID).catch(() => undefined)
+      if (full) {
+        const key = `${saved.providerID}/${saved.modelID}`
         return {
-          providerID: saved.providerID,
-          modelID: saved.modelID,
+          model: saved,
+          variant: resolveVariant({
+            value: state?.variant?.[key],
+            model: full,
+          }),
         }
       }
     }
 
     const agent = await Agent.get("code")
-    if (agent?.model) return agent.model
-    return model
+    if (agent?.model) {
+      const full = agent.variant
+        ? await Provider.getModel(agent.model.providerID, agent.model.modelID).catch(() => undefined)
+        : undefined
+      return {
+        model: agent.model,
+        variant: resolveVariant({
+          value: agent.variant,
+          model: full,
+        }),
+      }
+    }
+    return input
   }
 
   async function resolvePlan(input: {
@@ -180,6 +196,7 @@ export namespace PlanFollowup {
     sessionID: string
     agent: string
     model: MessageV2.User["model"]
+    variant?: MessageV2.User["variant"]
     text: string
     synthetic?: boolean
   }) {
@@ -192,6 +209,7 @@ export namespace PlanFollowup {
       },
       agent: input.agent,
       model: input.model,
+      variant: input.variant,
     }
     await Session.updateMessage(msg)
     await Session.updatePart({
@@ -248,9 +266,13 @@ export namespace PlanFollowup {
     plan: string
     messages: MessageV2.WithParts[]
     model: MessageV2.User["model"]
+    variant?: MessageV2.User["variant"]
     abort?: AbortSignal
   }) {
-    const model = await resolveCodeModel(input.model)
+    const code = await resolveCodeModel({
+      model: input.model,
+      variant: input.variant,
+    })
     const [handover, todos] = await Promise.all([
       generateHandover({ messages: input.messages, model: input.model, abort: input.abort }),
       Todo.get(input.sessionID),
@@ -271,7 +293,8 @@ export namespace PlanFollowup {
     await inject({
       sessionID: next.id,
       agent: "code",
-      model,
+      model: code.model,
+      variant: code.variant,
       text: sections.join("\n\n"),
       synthetic: false,
     })
@@ -322,6 +345,7 @@ export namespace PlanFollowup {
         plan,
         messages: input.messages,
         model: user.model,
+        variant: user.variant,
         abort: input.abort,
       })
       return "break"
@@ -329,11 +353,15 @@ export namespace PlanFollowup {
 
     if (answer === ANSWER_CONTINUE) {
       Telemetry.trackPlanFollowup(input.sessionID, "continue")
-      const model = await resolveCodeModel(user.model)
+      const code = await resolveCodeModel({
+        model: user.model,
+        variant: user.variant,
+      })
       await inject({
         sessionID: input.sessionID,
         agent: "code",
-        model,
+        model: code.model,
+        variant: code.variant,
         text: "Implement the plan above.",
       })
       return "continue"
@@ -344,6 +372,7 @@ export namespace PlanFollowup {
       sessionID: input.sessionID,
       agent: "plan",
       model: user.model,
+      variant: user.variant,
       text: answer,
     })
     return "continue"
