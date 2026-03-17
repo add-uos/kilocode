@@ -7,9 +7,10 @@
  * ModelSelector    — thin wrapper wired to session context for chat usage.
  */
 
-import { Component, createSignal, createMemo, createEffect, onCleanup, For, Show, createSelector } from "solid-js"
+import { Component, createSignal, createMemo, createEffect, onCleanup, For, Show, createSelector, JSX } from "solid-js"
 import { Popover } from "@kilocode/kilo-ui/popover"
 import { Button } from "@kilocode/kilo-ui/button"
+import { Tooltip } from "@kilocode/kilo-ui/tooltip"
 import { useProvider, EnrichedModel } from "../../context/provider"
 import { useSession } from "../../context/session"
 import { useLanguage } from "../../context/language"
@@ -19,6 +20,22 @@ import { KILO_GATEWAY_ID, providerSortKey, isFree, buildTriggerLabel } from "./m
 interface ModelGroup {
   providerName: string
   models: EnrichedModel[]
+}
+
+// ---------------------------------------------------------------------------
+// Tooltip content builder
+// ---------------------------------------------------------------------------
+
+function modelTooltip(model: EnrichedModel): JSX.Element | undefined {
+  const desc = model.options?.description
+  if (!desc) return undefined
+
+  return (
+    <div class="model-tooltip">
+      <div class="model-tooltip-title">{model.name}</div>
+      <div class="model-tooltip-desc">{desc}</div>
+    </div>
+  )
 }
 
 // ---------------------------------------------------------------------------
@@ -200,88 +217,97 @@ export const ModelSelectorBase: Component<ModelSelectorBaseProps> = (props) => {
       },
     )
 
+  const triggerTip = () => {
+    const m = activeModel()
+    return m ? modelTooltip(m) : undefined
+  }
+
   return (
-    <Popover
-      placement={props.placement ?? "top-start"}
-      open={open()}
-      onOpenChange={setOpen}
-      triggerAs={Button}
-      triggerProps={{
-        variant: "secondary",
-        size: "normal",
-        disabled: !hasProviders(),
-        title: activeModel()?.id,
-      }}
-      trigger={
-        <>
-          <span class="model-selector-trigger-label">{triggerLabel()}</span>
-          <svg class="model-selector-trigger-chevron" width="10" height="10" viewBox="0 0 16 16" fill="currentColor">
-            <path d="M8 4l4 5H4l4-5z" />
-          </svg>
-        </>
-      }
-      class="model-selector-popover"
-    >
-      <div onKeyDown={handleKeyDown}>
-        <div class="model-selector-search-wrapper">
-          <input
-            ref={searchRef}
-            class="model-selector-search"
-            type="text"
-            placeholder={language.t("dialog.model.search.placeholder")}
-            value={search()}
-            onInput={(e) => setSearch(e.currentTarget.value)}
-          />
+    <Tooltip value={triggerTip()} placement="top" inactive={open() || !triggerTip()}>
+      <Popover
+        placement={props.placement ?? "top-start"}
+        open={open()}
+        onOpenChange={setOpen}
+        triggerAs={Button}
+        triggerProps={{
+          variant: "secondary",
+          size: "normal",
+          disabled: !hasProviders(),
+        }}
+        trigger={
+          <>
+            <span class="model-selector-trigger-label">{triggerLabel()}</span>
+            <svg class="model-selector-trigger-chevron" width="10" height="10" viewBox="0 0 16 16" fill="currentColor">
+              <path d="M8 4l4 5H4l4-5z" />
+            </svg>
+          </>
+        }
+        class="model-selector-popover"
+      >
+        <div onKeyDown={handleKeyDown}>
+          <div class="model-selector-search-wrapper">
+            <input
+              ref={searchRef}
+              class="model-selector-search"
+              type="text"
+              placeholder={language.t("dialog.model.search.placeholder")}
+              value={search()}
+              onInput={(e) => setSearch(e.currentTarget.value)}
+            />
+          </div>
+
+          <div class="model-selector-list" role="listbox" ref={listRef}>
+            <Show when={flatFiltered().length === 0 && !props.allowClear}>
+              <div class="model-selector-empty">{language.t("dialog.model.empty")}</div>
+            </Show>
+
+            <Show when={props.allowClear}>
+              <div
+                class={`model-selector-item${isSelected(0) ? " selected" : ""}${!props.value?.providerID ? " active" : ""}`}
+                role="option"
+                aria-selected={!props.value?.providerID}
+                onClick={() => pickClear()}
+                onMouseEnter={() => setSelectedIndex(0)}
+              >
+                <span class="model-selector-item-name" style={{ "font-style": "italic", opacity: 0.7 }}>
+                  {props.clearLabel ?? language.t("dialog.model.notSet")}
+                </span>
+              </div>
+            </Show>
+
+            <For each={groups()}>
+              {(group) => (
+                <>
+                  <div class="model-selector-group-label">{group.providerName}</div>
+                  <For each={group.models}>
+                    {(model) => {
+                      const idx = () => flatIndexMap().get(model) ?? 0
+                      const tip = () => modelTooltip(model)
+                      return (
+                        <Tooltip value={tip()} placement="top" inactive={!tip()}>
+                          <div
+                            class={`model-selector-item${isSelected(idx()) ? " selected" : ""}${isActive(model) ? " active" : ""}`}
+                            role="option"
+                            aria-selected={isActive(model)}
+                            onClick={() => pick(model)}
+                            onMouseEnter={() => setSelectedIndex(idx())}
+                          >
+                            <span class="model-selector-item-name">{model.name}</span>
+                            <Show when={isFree(model)}>
+                              <span class="model-selector-tag">{language.t("model.tag.free")}</span>
+                            </Show>
+                          </div>
+                        </Tooltip>
+                      )
+                    }}
+                  </For>
+                </>
+              )}
+            </For>
+          </div>
         </div>
-
-        <div class="model-selector-list" role="listbox" ref={listRef}>
-          <Show when={flatFiltered().length === 0 && !props.allowClear}>
-            <div class="model-selector-empty">{language.t("dialog.model.empty")}</div>
-          </Show>
-
-          <Show when={props.allowClear}>
-            <div
-              class={`model-selector-item${isSelected(0) ? " selected" : ""}${!props.value?.providerID ? " active" : ""}`}
-              role="option"
-              aria-selected={!props.value?.providerID}
-              onClick={() => pickClear()}
-              onMouseEnter={() => setSelectedIndex(0)}
-            >
-              <span class="model-selector-item-name" style={{ "font-style": "italic", opacity: 0.7 }}>
-                {props.clearLabel ?? language.t("dialog.model.notSet")}
-              </span>
-            </div>
-          </Show>
-
-          <For each={groups()}>
-            {(group) => (
-              <>
-                <div class="model-selector-group-label">{group.providerName}</div>
-                <For each={group.models}>
-                  {(model) => {
-                    const idx = () => flatIndexMap().get(model) ?? 0
-                    return (
-                      <div
-                        class={`model-selector-item${isSelected(idx()) ? " selected" : ""}${isActive(model) ? " active" : ""}`}
-                        role="option"
-                        aria-selected={isActive(model)}
-                        onClick={() => pick(model)}
-                        onMouseEnter={() => setSelectedIndex(idx())}
-                      >
-                        <span class="model-selector-item-name">{model.name}</span>
-                        <Show when={isFree(model)}>
-                          <span class="model-selector-tag">{language.t("model.tag.free")}</span>
-                        </Show>
-                      </div>
-                    )
-                  }}
-                </For>
-              </>
-            )}
-          </For>
-        </div>
-      </div>
-    </Popover>
+      </Popover>
+    </Tooltip>
   )
 }
 

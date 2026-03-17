@@ -248,7 +248,11 @@ export interface ProviderModel {
   // Actual shape returned by the server (Provider.Model)
   limit?: { context: number; input?: number; output: number }
   variants?: Record<string, Record<string, unknown>>
-  capabilities?: { reasoning: boolean }
+  capabilities?: {
+    reasoning: boolean
+    input?: { text: boolean; image: boolean; audio: boolean; video: boolean; pdf: boolean }
+  }
+  options?: { description?: string }
 }
 
 export interface Provider {

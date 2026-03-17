@@ -1074,6 +1074,25 @@
   letter-spacing: 0.03em;
 }
 
+/* Model Tooltip */
+
+.model-tooltip {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-width: 260px;
+}
+
+.model-tooltip-title {
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.model-tooltip-desc {
+  font-size: 11px;
+  opacity: 0.85;
+}
+
 /* ============================================
    Thinking Selector (uses kilo-ui Popover)
    ============================================ */
