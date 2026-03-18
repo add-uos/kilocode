@@ -3,7 +3,19 @@
  * Text input with send/abort buttons, ghost-text autocomplete, and @ file mention support
  */
 
-import { Component, createSignal, createEffect, on, For, Index, onCleanup, onMount, Show, untrack } from "solid-js"
+import {
+  Component,
+  createSignal,
+  createEffect,
+  on,
+  For,
+  Index,
+  onCleanup,
+  onMount,
+  Show,
+  untrack,
+  type JSX,
+} from "solid-js"
 import { Button } from "@kilocode/kilo-ui/button"
 import { Dialog } from "@kilocode/kilo-ui/dialog"
 import { IconButton } from "@kilocode/kilo-ui/icon-button"
@@ -18,7 +30,7 @@ import { useWorktreeMode } from "../../context/worktree-mode"
 import { ModelSelector } from "../shared/ModelSelector"
 import { ModeSwitcher } from "../shared/ModeSwitcher"
 import { ThinkingSelector } from "../shared/ThinkingSelector"
-import { useFileMention } from "../../hooks/useFileMention"
+import { useFileMention, type FileMention } from "../../hooks/useFileMention"
 import { useImageAttachments } from "../../hooks/useImageAttachments"
 import { WandSparkles } from "@kilocode/kilo-ui/lucide"
 import { fileName, dirName, buildHighlightSegments } from "./prompt-input-utils"
@@ -43,9 +55,25 @@ function mergeReviewComments(current: ReviewComment[], incoming: ReviewComment[]
 
 interface PromptInputProps {
   blocked?: () => boolean
+  /** Compose mode: controlled text, no send/stop/reviews/drafts. */
+  compose?: boolean
+  value?: () => string
+  onChange?: (text: string) => void
+  placeholder?: string
+  rows?: number
+  containerClass?: string
+  /** Custom selectors slot (replaces default ModelSelector/ModeSwitcher/ThinkingSelector). */
+  selectors?: JSX.Element
+  /** External image attachment hook (avoids creating a second one). */
+  imageAttach?: ReturnType<typeof useImageAttachments>
+  /** Ref callback for the textarea element. */
+  textareaRef?: (el: HTMLTextAreaElement) => void
+  /** Ref callback to access the file-mention hook (e.g. for parseFileAttachments). */
+  mentionRef?: (m: FileMention) => void
 }
 
 export const PromptInput: Component<PromptInputProps> = (props) => {
+  const compose = props.compose ?? false
   const session = useSession()
   const server = useServer()
   const language = useLanguage()
@@ -53,11 +81,16 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
   const worktree = useWorktreeMode()
   const dialog = useDialog()
   const mention = useFileMention(vscode)
-  const imageAttach = useImageAttachments()
+  const imageAttach = props.imageAttach ?? useImageAttachments()
 
   const sessionKey = () => session.currentSessionID() ?? "__new__"
 
-  const [text, setText] = createSignal("")
+  const [ownText, setOwnText] = createSignal("")
+  const text = compose ? props.value! : ownText
+  const setText = (v: string) => {
+    if (compose) props.onChange!(v)
+    else setOwnText(v)
+  }
   const [ghostText, setGhostText] = createSignal("")
   const [reviewComments, setReviewComments] = createSignal<ReviewComment[]>([])
   const [chatAutocompleteEnabled, setChatAutocompleteEnabled] = createSignal(false)
@@ -133,45 +166,49 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
   let dropdownRef: HTMLDivElement | undefined
   let debounceTimer: ReturnType<typeof setTimeout> | undefined
   let requestCounter = 0
-  // Save/restore input text when switching sessions.
-  // Uses `on()` to track only sessionKey — avoids re-running on every keystroke.
-  createEffect(
-    on(sessionKey, (key, prev) => {
-      if (prev !== undefined && prev !== key) {
-        drafts.set(prev, untrack(text))
-        const pending = untrack(reviewComments)
-        if (pending.length > 0) reviewDrafts.set(prev, pending)
-        else reviewDrafts.delete(prev)
-      }
-      const draft = drafts.get(key) ?? ""
-      const pending = reviewDrafts.get(key) ?? []
-      setText(draft)
-      setGhostText("")
-      setReviewComments(pending)
-      if (textareaRef) {
-        textareaRef.value = draft
-        // Reset height then adjust
-        textareaRef.style.height = "auto"
-        textareaRef.style.height = `${Math.min(textareaRef.scrollHeight, 200)}px`
-      }
-      window.dispatchEvent(new Event("focusPrompt"))
-    }),
-  )
-
-  // Focus textarea when any part of the app requests it
-  const onFocusPrompt = () => textareaRef?.focus()
-  window.addEventListener("focusPrompt", onFocusPrompt)
-  onCleanup(() => window.removeEventListener("focusPrompt", onFocusPrompt))
-
-  // Start a new task, carrying over the current prompt text (without auto-sending it)
-  const onNewTaskRequest = () => {
-    const prompt = text().trim()
-    // Pre-populate the draft for the new (empty) session so the effect restores it
-    if (prompt) drafts.set("__new__", prompt)
-    session.clearCurrentSession()
+  // Expose mention hook in compose mode
+  if (compose) {
+    onMount(() => props.mentionRef?.(mention))
   }
-  window.addEventListener("newTaskRequest", onNewTaskRequest)
-  onCleanup(() => window.removeEventListener("newTaskRequest", onNewTaskRequest))
+
+  // Save/restore input text when switching sessions (chat mode only).
+  if (!compose) {
+    createEffect(
+      on(sessionKey, (key, prev) => {
+        if (prev !== undefined && prev !== key) {
+          drafts.set(prev, untrack(text))
+          const pending = untrack(reviewComments)
+          if (pending.length > 0) reviewDrafts.set(prev, pending)
+          else reviewDrafts.delete(prev)
+        }
+        const draft = drafts.get(key) ?? ""
+        const pending = reviewDrafts.get(key) ?? []
+        setText(draft)
+        setGhostText("")
+        setReviewComments(pending)
+        if (textareaRef) {
+          textareaRef.value = draft
+          textareaRef.style.height = "auto"
+          textareaRef.style.height = `${Math.min(textareaRef.scrollHeight, 200)}px`
+        }
+        window.dispatchEvent(new Event("focusPrompt"))
+      }),
+    )
+
+    // Focus textarea when any part of the app requests it
+    const onFocusPrompt = () => textareaRef?.focus()
+    window.addEventListener("focusPrompt", onFocusPrompt)
+    onCleanup(() => window.removeEventListener("focusPrompt", onFocusPrompt))
+
+    // Start a new task, carrying over the current prompt text
+    const onNewTaskRequest = () => {
+      const prompt = text().trim()
+      if (prompt) drafts.set("__new__", prompt)
+      session.clearCurrentSession()
+    }
+    window.addEventListener("newTaskRequest", onNewTaskRequest)
+    onCleanup(() => window.removeEventListener("newTaskRequest", onNewTaskRequest))
+  }
 
   const isBusy = () => session.status() === "busy"
   const isDisabled = () => !server.isConnected()
@@ -201,70 +238,71 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
       setChatAutocompleteEnabled(message.settings.enableChatAutocomplete)
     }
 
-    if (message.type === "setChatBoxMessage") {
-      setText(message.text)
-      setGhostText("")
-      if (textareaRef) {
-        textareaRef.value = message.text
-        adjustHeight()
-      }
-    }
-
-    if (message.type === "appendChatBoxMessage") {
-      const current = text()
-      const separator = current && !current.endsWith("\n") ? "\n\n" : ""
-      const next = current + separator + message.text
-      setText(next)
-      setGhostText("")
-      if (textareaRef) {
-        textareaRef.value = next
-        adjustHeight()
-        textareaRef.focus()
-        textareaRef.scrollTop = textareaRef.scrollHeight
-      }
-    }
-
-    if (message.type === "appendReviewComments") {
-      const merged = mergeReviewComments(reviewComments(), message.comments)
-      replaceReviewComments(merged)
-      textareaRef?.focus()
-    }
-
-    if (message.type === "triggerTask") {
-      if (isDisabled()) return
-      const sel = session.selected()
-      session.sendMessage(message.text, sel?.providerID, sel?.modelID)
-    }
-
-    if (message.type === "sendMessageFailed") {
-      const failed = message as import("../../types/messages").SendMessageFailedMessage
-      // Only restore draft if the failure is for the current session and the
-      // input is empty (user hasn't started typing something new).
-      const target = failed.sessionID ?? "__new__"
-      if (target === sessionKey() && !text().trim() && imageAttach.images().length === 0) {
-        if (failed.text) {
-          setText(failed.text)
-          setGhostText("")
-          if (textareaRef) {
-            textareaRef.value = failed.text
-            adjustHeight()
-            textareaRef.focus()
-          }
+    // Chat-mode-only message handlers
+    if (!compose) {
+      if (message.type === "setChatBoxMessage") {
+        setText(message.text)
+        setGhostText("")
+        if (textareaRef) {
+          textareaRef.value = message.text
+          adjustHeight()
         }
-        const images = (failed.files ?? [])
-          .filter((f) => f.mime.startsWith("image/") && f.url.startsWith("data:"))
-          .map((f) => ({
-            id: crypto.randomUUID(),
-            filename: f.filename ?? "image",
-            mime: f.mime,
-            dataUrl: f.url,
-          }))
-        if (images.length > 0) imageAttach.replace(images)
       }
-    }
 
-    if (message.type === "action" && message.action === "focusInput") {
-      textareaRef?.focus()
+      if (message.type === "appendChatBoxMessage") {
+        const current = text()
+        const separator = current && !current.endsWith("\n") ? "\n\n" : ""
+        const next = current + separator + message.text
+        setText(next)
+        setGhostText("")
+        if (textareaRef) {
+          textareaRef.value = next
+          adjustHeight()
+          textareaRef.focus()
+          textareaRef.scrollTop = textareaRef.scrollHeight
+        }
+      }
+
+      if (message.type === "appendReviewComments") {
+        const merged = mergeReviewComments(reviewComments(), message.comments)
+        replaceReviewComments(merged)
+        textareaRef?.focus()
+      }
+
+      if (message.type === "triggerTask") {
+        if (isDisabled()) return
+        const sel = session.selected()
+        session.sendMessage(message.text, sel?.providerID, sel?.modelID)
+      }
+
+      if (message.type === "sendMessageFailed") {
+        const failed = message as import("../../types/messages").SendMessageFailedMessage
+        const target = failed.sessionID ?? "__new__"
+        if (target === sessionKey() && !text().trim() && imageAttach.images().length === 0) {
+          if (failed.text) {
+            setText(failed.text)
+            setGhostText("")
+            if (textareaRef) {
+              textareaRef.value = failed.text
+              adjustHeight()
+              textareaRef.focus()
+            }
+          }
+          const images = (failed.files ?? [])
+            .filter((f) => f.mime.startsWith("image/") && f.url.startsWith("data:"))
+            .map((f) => ({
+              id: crypto.randomUUID(),
+              filename: f.filename ?? "image",
+              mime: f.mime,
+              dataUrl: f.url,
+            }))
+          if (images.length > 0) imageAttach.replace(images)
+        }
+      }
+
+      if (message.type === "action" && message.action === "focusInput") {
+        textareaRef?.focus()
+      }
     }
 
     if (message.type === "enhancePromptResult") {
@@ -294,12 +332,13 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
   })
 
   onCleanup(() => {
-    // Persist current draft before unmounting
-    const current = text()
-    if (current) drafts.set(sessionKey(), current)
-    const pending = reviewComments()
-    if (pending.length > 0) reviewDrafts.set(sessionKey(), pending)
-    else reviewDrafts.delete(sessionKey())
+    if (!compose) {
+      const current = text()
+      if (current) drafts.set(sessionKey(), current)
+      const pending = reviewComments()
+      if (pending.length > 0) reviewDrafts.set(sessionKey(), pending)
+      else reviewDrafts.delete(sessionKey())
+    }
     unsubscribe()
     if (debounceTimer) clearTimeout(debounceTimer)
   })
@@ -413,16 +452,19 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
       dismissSuggestion()
       return
     }
-    if (e.key === "Escape" && isBusy()) {
-      e.preventDefault()
-      e.stopPropagation()
-      session.abort()
-      return
-    }
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault()
-      dismissSuggestion()
-      handleSend()
+    // Chat-mode-only key bindings
+    if (!compose) {
+      if (e.key === "Escape" && isBusy()) {
+        e.preventDefault()
+        e.stopPropagation()
+        session.abort()
+        return
+      }
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault()
+        dismissSuggestion()
+        handleSend()
+      }
     }
   }
 
@@ -477,15 +519,20 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
     if (textareaRef) textareaRef.style.height = "auto"
   }
 
+  const setRef = (el: HTMLTextAreaElement) => {
+    textareaRef = el
+    props.textareaRef?.(el)
+  }
+
   return (
     <div
-      class="prompt-input-container"
+      class={`prompt-input-container${props.containerClass ? ` ${props.containerClass}` : ""}`}
       classList={{ "prompt-input-container--dragging": imageAttach.dragging() }}
       onDragOver={imageAttach.handleDragOver}
       onDragLeave={imageAttach.handleDragLeave}
       onDrop={imageAttach.handleDrop}
     >
-      <Show when={reviewComments().length > 0}>
+      <Show when={!compose && reviewComments().length > 0}>
         <div class="prompt-review-comments">
           <div class="prompt-review-comments-header">
             <span class="prompt-review-comments-title">
@@ -602,37 +649,39 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
             </Show>
           </div>
           <textarea
-            ref={textareaRef}
+            ref={setRef}
             class="prompt-input"
-            placeholder={placeholder()}
+            placeholder={compose ? props.placeholder : placeholder()}
             value={text()}
             onInput={handleInput}
             onKeyDown={handleKeyDown}
             onPaste={handlePaste}
             onScroll={syncHighlightScroll}
-            disabled={isDisabled()}
-            rows={1}
+            disabled={compose ? false : isDisabled()}
+            rows={props.rows ?? 1}
           />
         </div>
       </div>
       <div class="prompt-input-hint">
         <div class="prompt-input-hint-selectors">
-          <ModeSwitcher />
-          <ModelSelector />
-          <ThinkingSelector />
-          <Show when={session.hasModelOverride()}>
-            <Tooltip value={language.t("prompt.action.resetModel")} placement="top">
-              <Button
-                variant="ghost"
-                size="small"
-                onClick={() => session.clearModelOverride()}
-                aria-label={language.t("prompt.action.resetModel")}
-              >
-                <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
-                  <path d="M3.72 3.72a.75.75 0 011.06 0L8 6.94l3.22-3.22a.75.75 0 111.06 1.06L9.06 8l3.22 3.22a.75.75 0 11-1.06 1.06L8 9.06l-3.22 3.22a.75.75 0 01-1.06-1.06L6.94 8 3.72 4.78a.75.75 0 010-1.06z" />
-                </svg>
-              </Button>
-            </Tooltip>
+          <Show when={!compose} fallback={props.selectors}>
+            <ModeSwitcher />
+            <ModelSelector />
+            <ThinkingSelector />
+            <Show when={session.hasModelOverride()}>
+              <Tooltip value={language.t("prompt.action.resetModel")} placement="top">
+                <Button
+                  variant="ghost"
+                  size="small"
+                  onClick={() => session.clearModelOverride()}
+                  aria-label={language.t("prompt.action.resetModel")}
+                >
+                  <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
+                    <path d="M3.72 3.72a.75.75 0 011.06 0L8 6.94l3.22-3.22a.75.75 0 111.06 1.06L9.06 8l3.22 3.22a.75.75 0 11-1.06 1.06L8 9.06l-3.22 3.22a.75.75 0 01-1.06-1.06L6.94 8 3.72 4.78a.75.75 0 010-1.06z" />
+                  </svg>
+                </Button>
+              </Tooltip>
+            </Show>
           </Show>
         </div>
         <div class="prompt-input-hint-actions">
@@ -647,39 +696,43 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
               <WandSparkles size={16} class={enhancing() ? "enhance-spinner" : ""} />
             </Button>
           </Tooltip>
-          <Show
-            when={showStop()}
-            fallback={
-              <Tooltip
-                value={props.blocked?.() ? language.t("prompt.action.send.blocked") : language.t("prompt.action.send")}
-                placement="top"
-              >
+          <Show when={!compose}>
+            <Show
+              when={showStop()}
+              fallback={
+                <Tooltip
+                  value={
+                    props.blocked?.() ? language.t("prompt.action.send.blocked") : language.t("prompt.action.send")
+                  }
+                  placement="top"
+                >
+                  <Button
+                    variant="ghost"
+                    size="small"
+                    onClick={handleSend}
+                    disabled={!canSend()}
+                    aria-label={language.t("prompt.action.send")}
+                  >
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                      <path d="M1.5 1.5L14.5 8L1.5 14.5V9L10 8L1.5 7V1.5Z" />
+                    </svg>
+                  </Button>
+                </Tooltip>
+              }
+            >
+              <Tooltip value={language.t("prompt.action.stop")} placement="top">
                 <Button
                   variant="ghost"
                   size="small"
-                  onClick={handleSend}
-                  disabled={!canSend()}
-                  aria-label={language.t("prompt.action.send")}
+                  onClick={() => session.abort()}
+                  aria-label={language.t("prompt.action.stop")}
                 >
                   <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                    <path d="M1.5 1.5L14.5 8L1.5 14.5V9L10 8L1.5 7V1.5Z" />
+                    <rect x="3" y="3" width="10" height="10" rx="1" />
                   </svg>
                 </Button>
               </Tooltip>
-            }
-          >
-            <Tooltip value={language.t("prompt.action.stop")} placement="top">
-              <Button
-                variant="ghost"
-                size="small"
-                onClick={() => session.abort()}
-                aria-label={language.t("prompt.action.stop")}
-              >
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                  <rect x="3" y="3" width="10" height="10" rx="1" />
-                </svg>
-              </Button>
-            </Tooltip>
+            </Show>
           </Show>
         </div>
       </div>

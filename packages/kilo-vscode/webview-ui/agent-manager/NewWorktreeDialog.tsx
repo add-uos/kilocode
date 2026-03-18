@@ -12,6 +12,7 @@ import { useVSCode } from "../src/context/vscode"
 import { useSession } from "../src/context/session"
 import { ModelSelectorBase } from "../src/components/shared/ModelSelector"
 import { ModeSwitcherBase } from "../src/components/shared/ModeSwitcher"
+import { ThinkingSelector } from "../src/components/shared/ThinkingSelector"
 import {
   MultiModelSelector,
   type ModelAllocations,
@@ -21,6 +22,7 @@ import {
 } from "./MultiModelSelector"
 import { useLanguage } from "../src/context/language"
 import { useImageAttachments } from "../src/hooks/useImageAttachments"
+import { PromptInput } from "../src/components/chat/PromptInput"
 import { BranchSelect } from "./BranchSelect"
 
 type VersionCount = 1 | 2 | 3 | 4
@@ -83,16 +85,18 @@ export const NewWorktreeDialog: Component<{ onClose: () => void; defaultBaseBran
 
   const imageAttach = useImageAttachments()
 
-  let textareaRef: HTMLTextAreaElement | undefined
+  // Save session model so we can restore it when the dialog closes.
+  // We temporarily call session.selectModel() so ThinkingSelector picks up variants.
+  const savedModel = session.selected()
 
   onMount(() => {
-    requestAnimationFrame(() => {
-      if (!textareaRef) return
-      textareaRef.focus()
-      textareaRef.select()
-    })
     setBranchesLoading(true)
     vscode.postMessage({ type: "agentManager.requestBranches" })
+  })
+
+  onCleanup(() => {
+    if (savedModel) session.selectModel(savedModel.providerID, savedModel.modelID)
+    else session.clearModelOverride()
   })
 
   const effectiveBaseBranch = () => baseBranch() ?? defaultBranch()
@@ -148,12 +152,6 @@ export const NewWorktreeDialog: Component<{ onClose: () => void; defaultBaseBran
       e.preventDefault()
       handleSubmit()
     }
-  }
-
-  const adjustHeight = () => {
-    if (!textareaRef) return
-    textareaRef.style.height = "auto"
-    textareaRef.style.height = `${Math.min(textareaRef.scrollHeight, 200)}px`
   }
 
   // --- Import tab state ---
@@ -234,78 +232,47 @@ export const NewWorktreeDialog: Component<{ onClose: () => void; defaultBaseBran
               value={name()}
               onInput={(e) => setName(e.currentTarget.value)}
             />
-            {/* Prompt input — reuses the sidebar chat-input base classes for consistent styling */}
-            <div
-              class="prompt-input-container am-prompt-input-container"
-              classList={{ "prompt-input-container--dragging": imageAttach.dragging() }}
-              onDragOver={imageAttach.handleDragOver}
-              onDragLeave={imageAttach.handleDragLeave}
-              onDrop={imageAttach.handleDrop}
-            >
-              <Show when={imageAttach.images().length > 0}>
-                <div class="image-attachments">
-                  <For each={imageAttach.images()}>
-                    {(img) => (
-                      <div class="image-attachment">
-                        <img
-                          src={img.dataUrl}
-                          alt={img.filename}
-                          title={img.filename}
-                          onClick={() =>
-                            vscode.postMessage({ type: "previewImage", dataUrl: img.dataUrl, filename: img.filename })
-                          }
-                        />
-                        <button
-                          type="button"
-                          class="image-attachment-remove"
-                          onClick={() => imageAttach.remove(img.id)}
-                          aria-label={t("agentManager.dialog.removeImage")}
-                        >
-                          ×
-                        </button>
-                      </div>
-                    )}
-                  </For>
-                </div>
-              </Show>
-              <div class="prompt-input-wrapper am-prompt-input-wrapper">
-                <div class="prompt-input-ghost-wrapper am-prompt-input-ghost-wrapper">
-                  <textarea
-                    ref={textareaRef}
-                    class="prompt-input am-prompt-input"
-                    placeholder={t(
-                      isMac
-                        ? "agentManager.dialog.promptPlaceholder.mac"
-                        : "agentManager.dialog.promptPlaceholder.other",
-                    )}
-                    value={prompt()}
-                    onInput={(e) => {
-                      setPrompt(e.currentTarget.value)
-                      adjustHeight()
-                    }}
-                    onPaste={(e) => imageAttach.handlePaste(e)}
-                    rows={3}
-                  />
-                </div>
-              </div>
-              <div class="prompt-input-hint">
-                <div class="prompt-input-hint-selectors">
+            {/* Prompt input — uses PromptInputCore for @ file mentions, ghost text, enhance, etc. */}
+            <PromptInput
+              compose
+              value={prompt}
+              onChange={setPrompt}
+              placeholder={t(
+                isMac ? "agentManager.dialog.promptPlaceholder.mac" : "agentManager.dialog.promptPlaceholder.other",
+              )}
+              rows={3}
+              imageAttach={imageAttach}
+              textareaRef={(el) => {
+                if (el) {
+                  requestAnimationFrame(() => {
+                    el.focus()
+                    el.select()
+                  })
+                }
+              }}
+              selectors={
+                <>
+                  <Show when={session.agents().length > 1}>
+                    <ModeSwitcherBase agents={session.agents()} value={agent()} onSelect={setAgent} />
+                  </Show>
                   <Show when={!compareMode()}>
                     <ModelSelectorBase
                       value={model()}
-                      onSelect={(pid, mid) => setModel(pid && mid ? { providerID: pid, modelID: mid } : null)}
+                      onSelect={(pid, mid) => {
+                        setModel(pid && mid ? { providerID: pid, modelID: mid } : null)
+                        if (pid && mid) session.selectModel(pid, mid)
+                        else session.clearModelOverride()
+                      }}
                       placement="top-start"
                       allowClear
                       clearLabel="Default"
                     />
+                    <ThinkingSelector />
                   </Show>
-                  <Show when={session.agents().length > 1}>
-                    <ModeSwitcherBase agents={session.agents()} value={agent()} onSelect={setAgent} />
-                  </Show>
-                </div>
-                <div class="prompt-input-hint-actions" />
-              </div>
-            </div>
+                </>
+              }
+              containerClass="am-prompt-input-container"
+            />
 
             {/* Advanced options toggle */}
             <button class="am-advanced-toggle" onClick={() => setShowAdvanced(!showAdvanced())} type="button">
