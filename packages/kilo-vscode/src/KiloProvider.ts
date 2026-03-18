@@ -1341,39 +1341,14 @@ export class KiloProvider implements vscode.WebviewViewProvider, TelemetryProper
       const stub = { id: name, type: "mode" as const, name, description: "", content: "" }
       const project = await mp.remove(stub, "project", workspace)
       const global = await mp.remove(stub, "global", workspace)
-      if (project.success || global.success) {
-        await this.disposeCliInstance("global")
-        removed = true
-      }
+      if (project.success || global.success) removed = true
     }
 
     if (!removed) {
       console.error("[Kilo New] KiloProvider: Failed to remove mode:", name)
     }
 
-    this.cachedAgentsMessage = null
-    await this.fetchAndSendAgents()
-    await this.fetchAndSendMarketplaceData()
-  }
-
-  /**
-   * Dispose the CLI backend instance so it re-reads config from disk.
-   * Call after any marketplace install/remove that writes config files directly.
-   * Global-scope changes need global.dispose() to also reset the global config cache.
-   */
-  private async disposeCliInstance(scope: "project" | "global"): Promise<void> {
-    if (!this.client) return
-    if (scope === "global") {
-      await this.client.global.dispose().catch((e: unknown) => {
-        console.warn("[Kilo New] global.dispose() after marketplace change failed:", e)
-      })
-    }
-    // Always dispose the per-project instance so it rebuilds state from
-    // the (possibly updated) global + project config on the next request.
-    const dir = this.getWorkspaceDirectory()
-    await this.client.instance.dispose({ directory: dir }).catch((e: unknown) => {
-      console.warn("[Kilo New] instance.dispose() after marketplace change failed:", e)
-    })
+    await this.invalidateAfterMarketplaceChange("global")
   }
 
   /**
@@ -1410,7 +1385,7 @@ export class KiloProvider implements vscode.WebviewViewProvider, TelemetryProper
     })
     this.cachedAgentsMessage = null
     this.cachedConfigMessage = null
-    await Promise.all([this.fetchAndSendAgents(), this.fetchAndSendConfig()])
+    await Promise.all([this.fetchAndSendAgents(), this.fetchAndSendConfig(), this.fetchAndSendMarketplaceData()])
   }
 
   /**
