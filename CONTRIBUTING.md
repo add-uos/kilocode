@@ -77,6 +77,22 @@ kilo web             # Start server + open web interface
 - **Logic Changes:** Explain how you verified it works.
 - **PR Titles:** Follow conventional commit standards (`feat:`, `fix:`, `docs:`, etc.).
 
+### Manual Testing Requirement
+
+All pull requests must be manually tested by the contributor before submission. Automated tests alone are not sufficient — we expect contributors to verify their changes work as intended in a real environment.
+
+**What's required:**
+
+- Manually test your changes end-to-end before opening a PR.
+- Include proof of manual testing in your PR description. Acceptable forms of evidence include:
+  - Screenshots or screen recordings demonstrating the change in action
+  - Terminal/test output showing the feature or fix working correctly
+  - A detailed, step-by-step description of what you tested and the results you observed
+- For bug fixes, demonstrate that the bug is resolved and that related functionality still works.
+- For new features, show the feature working across relevant scenarios, including edge cases where appropriate.
+
+**PRs that do not include evidence of manual testing will most likely not be reviewed or accepted.** This policy helps us maintain quality and ensures that contributors have confidence in their own changes before requesting review from others.
+
 ### Issue and PR Lifecycle
 
 To keep our backlog manageable, we automatically close inactive issues and PRs after a period of inactivity. This isn't a judgment on quality — older items tend to lose context over time and we'd rather start fresh if they're still relevant. Feel free to reopen or create a new issue/PR if you're still working on something!

@@ -30,6 +30,22 @@ A "How To Test" section can look something like this:
 
 -->
 
+## Manual Testing
+
+<!--
+
+REQUIRED: All PRs must include evidence of manual testing. PRs without this section filled out will most likely not be accepted.
+
+Describe what you manually tested and provide proof of your results. This can include:
+- Screenshots or screen recordings
+- Terminal/test output
+- Step-by-step description of what you tested and the observed results
+
+For bug fixes, confirm the bug is resolved and related functionality still works.
+For new features, demonstrate the feature working across relevant scenarios.
+
+-->
+
 ## Get in Touch
 
 <!-- We'd love to have a way to chat with you about your changes if necessary. If you're in the [Kilo Code Discord](https://kilo.ai/discord), please share your handle here. -->
