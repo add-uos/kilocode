@@ -434,7 +434,10 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
 
     // Prompt history: ArrowUp/ArrowDown at cursor boundaries cycles through sent prompts
     if ((e.key === "ArrowUp" || e.key === "ArrowDown") && !e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
-      const cursor = textareaRef?.selectionStart ?? 0
+      const start = textareaRef?.selectionStart ?? 0
+      const end = textareaRef?.selectionEnd ?? 0
+      if (start !== end) return // don't replace active text selection
+      const cursor = start
       const direction = e.key === "ArrowUp" ? ("up" as const) : ("down" as const)
       const entry = history.navigate(direction, text(), cursor)
       if (entry !== null) {
@@ -521,7 +524,7 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
 
     session.sendMessage(message, sel?.providerID, sel?.modelID, attachments)
 
-    history.append(message)
+    history.append(draft)
     history.reset()
     requestCounter++
     setText("")
