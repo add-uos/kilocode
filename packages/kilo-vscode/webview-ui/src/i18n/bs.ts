@@ -164,6 +164,7 @@ export const dict = {
 
   "model.tag.free": "Besplatno",
   "model.tag.latest": "Najnovije",
+  "model.group.recommended": "Preporučeno",
   "model.provider.anthropic": "Anthropic",
   "model.provider.openai": "OpenAI",
   "model.provider.google": "Google",
@@ -455,7 +456,7 @@ export const dict = {
 
   "notification.permission.title": "Potrebna dozvola",
   "notification.permission.description": "{{sessionTitle}} u {{projectName}} traži dozvolu",
-  "ui.permission.permissionRules": "Pravila dozvola",
+  "ui.permission.manageAutoApprove": "Upravljanje pravilima automatskog odobravanja",
   "ui.permission.rule.addToAllowed": "Dodaj na listu dozvoljenih",
   "ui.permission.rule.removeFromAllowed": "Ukloni sa liste dozvoljenih",
   "ui.permission.rule.addToDenied": "Dodaj na listu odbijenih",

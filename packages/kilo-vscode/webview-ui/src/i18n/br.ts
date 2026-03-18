@@ -163,6 +163,7 @@ export const dict = {
   "provider.disconnect.toast.disconnected.description": "Os modelos de {{provider}} não estão mais disponíveis.",
   "model.tag.free": "Grátis",
   "model.tag.latest": "Mais recente",
+  "model.group.recommended": "Recomendado",
   "model.provider.anthropic": "Anthropic",
   "model.provider.openai": "OpenAI",
   "model.provider.google": "Google",
@@ -451,7 +452,7 @@ export const dict = {
 
   "notification.permission.title": "Permissão necessária",
   "notification.permission.description": "{{sessionTitle}} em {{projectName}} precisa de permissão",
-  "ui.permission.permissionRules": "Regras de permissão",
+  "ui.permission.manageAutoApprove": "Gerenciar regras de aprovação automática",
   "ui.permission.rule.addToAllowed": "Adicionar à lista de permitidos",
   "ui.permission.rule.removeFromAllowed": "Remover da lista de permitidos",
   "ui.permission.rule.addToDenied": "Adicionar à lista de negados",

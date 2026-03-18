@@ -162,6 +162,7 @@ export const dict = {
   "provider.disconnect.toast.disconnected.description": "لم تعد نماذج {{provider}} متاحة.",
   "model.tag.free": "مجاني",
   "model.tag.latest": "الأحدث",
+  "model.group.recommended": "موصى به",
   "model.provider.anthropic": "Anthropic",
   "model.provider.openai": "OpenAI",
   "model.provider.google": "Google",
@@ -449,7 +450,7 @@ export const dict = {
 
   "notification.permission.title": "مطلوب إذن",
   "notification.permission.description": "{{sessionTitle}} في {{projectName}} يحتاج إلى إذن",
-  "ui.permission.permissionRules": "قواعد الأذونات",
+  "ui.permission.manageAutoApprove": "إدارة قواعد الموافقة التلقائية",
   "ui.permission.rule.addToAllowed": "أضف إلى قائمة المسموح",
   "ui.permission.rule.removeFromAllowed": "أزل من قائمة المسموح",
   "ui.permission.rule.addToDenied": "أضف إلى قائمة المرفوض",

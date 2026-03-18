@@ -232,7 +232,7 @@ export const NewWorktreeDialog: Component<{ onClose: () => void; defaultBaseBran
               value={name()}
               onInput={(e) => setName(e.currentTarget.value)}
             />
-            {/* Prompt input — uses PromptInputCore for @ file mentions, ghost text, enhance, etc. */}
+            {/* Prompt input — reuses PromptInput in compose mode for file mentions, ghost text, enhance, etc. */}
             <PromptInput
               compose
               value={prompt}

@@ -241,9 +241,9 @@ export namespace Server {
           openAPIRouteHandler(app, {
             documentation: {
               info: {
-                title: "opencode",
+                title: "kilo", // kilocode_change
                 version: "0.0.3",
-                description: "opencode api",
+                description: "kilo api", // kilocode_change
               },
               openapi: "3.1.1",
             },
@@ -523,6 +523,7 @@ export namespace Server {
             return c.json(await LSP.status())
           },
         )
+
         .get(
           "/formatter",
           describeRoute({
@@ -628,9 +629,9 @@ export namespace Server {
     const result = await generateSpecs(App() as Hono, {
       documentation: {
         info: {
-          title: "opencode",
+          title: "kilo", // kilocode_change
           version: "1.0.0",
-          description: "opencode api",
+          description: "kilo api", // kilocode_change
         },
         openapi: "3.1.1",
       },

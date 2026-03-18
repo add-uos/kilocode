@@ -166,6 +166,7 @@ export const dict = {
   "provider.disconnect.toast.disconnected.description": "Modeller fra {{provider}} er ikke lenger tilgjengelige.",
   "model.tag.free": "Gratis",
   "model.tag.latest": "Nyeste",
+  "model.group.recommended": "Anbefalt",
   "model.provider.anthropic": "Anthropic",
   "model.provider.openai": "OpenAI",
   "model.provider.google": "Google",
@@ -455,7 +456,7 @@ export const dict = {
 
   "notification.permission.title": "Tillatelse påkrevd",
   "notification.permission.description": "{{sessionTitle}} i {{projectName}} trenger tillatelse",
-  "ui.permission.permissionRules": "Tillatelsesregler",
+  "ui.permission.manageAutoApprove": "Administrer regler for automatisk godkjenning",
   "ui.permission.rule.addToAllowed": "Legg til i tillatt-listen",
   "ui.permission.rule.removeFromAllowed": "Fjern fra tillatt-listen",
   "ui.permission.rule.addToDenied": "Legg til i blokkert-listen",

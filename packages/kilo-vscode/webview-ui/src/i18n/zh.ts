@@ -163,6 +163,7 @@ export const dict = {
   "provider.disconnect.toast.disconnected.description": "{{provider}} 模型已不再可用。",
   "model.tag.free": "免费",
   "model.tag.latest": "最新",
+  "model.group.recommended": "推荐",
 
   "model.provider.anthropic": "Anthropic",
   "model.provider.openai": "OpenAI",
@@ -446,7 +447,7 @@ export const dict = {
 
   "notification.permission.title": "需要权限",
   "notification.permission.description": "{{sessionTitle}}（{{projectName}}）需要权限",
-  "ui.permission.permissionRules": "权限规则",
+  "ui.permission.manageAutoApprove": "管理自动审批规则",
   "ui.permission.rule.addToAllowed": "添加到允许列表",
   "ui.permission.rule.removeFromAllowed": "从允许列表移除",
   "ui.permission.rule.addToDenied": "添加到拒绝列表",

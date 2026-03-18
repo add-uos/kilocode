@@ -166,6 +166,7 @@ export const dict = {
   "provider.disconnect.toast.disconnected.description": "{{provider}} 모델을 더 이상 사용할 수 없습니다.",
   "model.tag.free": "무료",
   "model.tag.latest": "최신",
+  "model.group.recommended": "추천",
 
   "model.provider.anthropic": "Anthropic",
   "model.provider.openai": "OpenAI",
@@ -453,7 +454,7 @@ export const dict = {
 
   "notification.permission.title": "권한 필요",
   "notification.permission.description": "{{projectName}}의 {{sessionTitle}}에서 권한이 필요합니다",
-  "ui.permission.permissionRules": "권한 규칙",
+  "ui.permission.manageAutoApprove": "자동 승인 규칙 관리",
   "ui.permission.rule.addToAllowed": "허용 목록에 추가",
   "ui.permission.rule.removeFromAllowed": "허용 목록에서 제거",
   "ui.permission.rule.addToDenied": "거부 목록에 추가",
