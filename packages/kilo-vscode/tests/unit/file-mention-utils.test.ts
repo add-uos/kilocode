@@ -73,6 +73,24 @@ describe("syncMentionedPaths", () => {
     const result = syncMentionedPaths(paths, "@foo.ts is important")
     expect(result.has("foo.ts")).toBe(true)
   })
+
+  it("keeps mention when followed by a comma", () => {
+    const paths = new Set(["foo.ts"])
+    const result = syncMentionedPaths(paths, "see @foo.ts, it explains things")
+    expect(result.has("foo.ts")).toBe(true)
+  })
+
+  it("keeps mention when followed by a period", () => {
+    const paths = new Set(["foo.ts"])
+    const result = syncMentionedPaths(paths, "check @foo.ts.")
+    expect(result.has("foo.ts")).toBe(true)
+  })
+
+  it("keeps mention when followed by other punctuation", () => {
+    const paths = new Set(["foo.ts"])
+    const result = syncMentionedPaths(paths, "is it @foo.ts?")
+    expect(result.has("foo.ts")).toBe(true)
+  })
 })
 
 describe("buildTextAfterMentionSelect", () => {
