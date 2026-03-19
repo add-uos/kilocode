@@ -1573,6 +1573,71 @@
 }
 
 /* ============================================
+   Account Switcher (uses kilo-ui Popover)
+   ============================================ */
+
+.account-switcher-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 120px;
+}
+
+.account-switcher-list {
+  max-height: var(--kb-popper-content-available-height, 280px);
+  overflow-y: auto;
+}
+
+.account-switcher-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: var(--vscode-font-size);
+}
+
+.account-switcher-item:hover {
+  background: var(--surface-interactive-hover, var(--vscode-list-hoverBackground));
+}
+
+.account-switcher-item.selected {
+  background: var(
+    --surface-interactive-active,
+    var(--vscode-list-activeSelectionBackground, var(--vscode-list-hoverBackground))
+  );
+  color: var(--text-on-interactive-base, var(--vscode-list-activeSelectionForeground));
+}
+
+.account-switcher-item-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.account-switcher-item-name {
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.account-switcher-item-role {
+  font-size: 11px;
+  color: var(--text-weak, var(--vscode-descriptionForeground));
+  text-transform: capitalize;
+}
+
+.account-switcher-item.selected .account-switcher-item-name {
+  font-weight: 600;
+}
+
+.account-switcher-item.selected .account-switcher-item-role {
+  color: inherit;
+}
+
+/* ============================================
    Permission Dock (VS Code overrides)
    ============================================ */
 
@@ -2634,7 +2699,8 @@ body.vscode-high-contrast-light {
   .slash-command-item--active,
   .model-selector-item.active,
   .thinking-selector-item.selected,
-  .mode-switcher-item.selected {
+  .mode-switcher-item.selected,
+  .account-switcher-item.selected {
     outline: 1px solid var(--vscode-contrastBorder, transparent);
     outline-offset: -1px;
   }

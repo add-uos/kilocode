@@ -15,6 +15,7 @@ import { useServer } from "../../context/server"
 import { useLanguage } from "../../context/language"
 import { useVSCode } from "../../context/vscode"
 import { useWorktreeMode } from "../../context/worktree-mode"
+import { AccountSwitcher } from "../shared/AccountSwitcher"
 import { ModelSelector } from "../shared/ModelSelector"
 import { ModeSwitcher } from "../shared/ModeSwitcher"
 import { ThinkingSelector } from "../shared/ThinkingSelector"
@@ -758,6 +759,7 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
           <ModeSwitcher />
           <ModelSelector />
           <ThinkingSelector />
+          <AccountSwitcher />
           <Show when={session.hasModelOverride()}>
             <Tooltip value={language.t("prompt.action.resetModel")} placement="top">
               <Button
