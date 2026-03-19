@@ -943,32 +943,34 @@ export namespace MCP {
 
   /**
    * Remove an MCP server from the config by setting it to null (delete sentinel).
-   * This removes it from both project and global config scopes.
-   * Returns true if removed from at least one scope.
+   * Checks the merged config to see if the MCP exists, then removes it from
+   * both project and global config files unconditionally. The null sentinel is
+   * harmless if the key doesn't exist in a particular scope (stripNulls cleans up).
    */
   export async function remove(name: string): Promise<{ project: boolean; global: boolean }> {
     const result = { project: false, global: false }
 
-    // Try to remove from project config first
-    try {
-      const cfg = await Config.get()
-      if (cfg.mcp?.[name]) {
-        await Config.update({ mcp: { [name]: null as any } })
-        result.project = true
-      }
-    } catch (err) {
-      log.debug("failed to remove MCP from project config", { name, err })
+    // Check the merged config (includes migrator entries) to verify the MCP exists
+    const merged = await Config.get()
+    if (!merged.mcp?.[name]) {
+      log.info("MCP server not found in merged config", { name })
+      return result
     }
 
-    // Try to remove from global config
+    // Remove from global config (marketplace installs write here)
     try {
-      const globalCfg = await Config.getGlobal()
-      if (globalCfg.mcp?.[name]) {
-        await Config.updateGlobal({ mcp: { [name]: null as any } }, { dispose: false })
-        result.global = true
-      }
+      await Config.updateGlobal({ mcp: { [name]: null as any } }, { dispose: false })
+      result.global = true
     } catch (err) {
       log.debug("failed to remove MCP from global config", { name, err })
+    }
+
+    // Remove from project config
+    try {
+      await Config.update({ mcp: { [name]: null as any } })
+      result.project = true
+    } catch (err) {
+      log.debug("failed to remove MCP from project config", { name, err })
     }
 
     // Disconnect the client if it exists
