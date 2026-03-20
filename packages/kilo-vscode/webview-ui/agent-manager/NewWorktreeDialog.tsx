@@ -8,6 +8,7 @@ import { Icon } from "@kilocode/kilo-ui/icon"
 import { Button } from "@kilocode/kilo-ui/button"
 import { Spinner } from "@kilocode/kilo-ui/spinner"
 import { Popover } from "@kilocode/kilo-ui/popover"
+import { Tooltip } from "@kilocode/kilo-ui/tooltip"
 import { useVSCode } from "../src/context/vscode"
 import { useSession } from "../src/context/session"
 import { ModelSelectorBase } from "../src/components/shared/ModelSelector"
@@ -69,7 +70,8 @@ export const NewWorktreeDialog: Component<{ onClose: () => void; defaultBaseBran
 
   // --- New tab state ---
   const [name, setName] = createSignal("")
-  const [prompt, setPrompt] = createSignal("")
+  const cached = vscode.getState<Record<string, unknown>>()
+  const [prompt, setPrompt] = createSignal((cached?.advancedDialogPrompt as string) ?? "")
   const [versions, setVersions] = createSignal<VersionCount>(1)
   const [model, setModel] = createSignal<{ providerID: string; modelID: string } | null>(null)
   const [compareMode, setCompareMode] = createSignal(false)
@@ -90,6 +92,11 @@ export const NewWorktreeDialog: Component<{ onClose: () => void; defaultBaseBran
   // but must restore the original state on close to avoid creating a phantom override.
   const hadOverride = session.hasModelOverride()
   const savedModel = session.selected()
+
+  const persistPrompt = (value: string) => {
+    const state = vscode.getState<Record<string, unknown>>() ?? {}
+    vscode.setState({ ...state, advancedDialogPrompt: value || undefined })
+  }
 
   onMount(() => {
     setBranchesLoading(true)
@@ -146,6 +153,7 @@ export const NewWorktreeDialog: Component<{ onClose: () => void; defaultBaseBran
       files: imgFiles,
     })
 
+    persistPrompt("")
     props.onClose()
   }
 
@@ -238,7 +246,10 @@ export const NewWorktreeDialog: Component<{ onClose: () => void; defaultBaseBran
             <PromptInput
               compose
               value={prompt}
-              onChange={setPrompt}
+              onChange={(val) => {
+                setPrompt(val)
+                persistPrompt(val)
+              }}
               placeholder={t(
                 isMac ? "agentManager.dialog.promptPlaceholder.mac" : "agentManager.dialog.promptPlaceholder.other",
               )}
@@ -410,14 +421,16 @@ export const NewWorktreeDialog: Component<{ onClose: () => void; defaultBaseBran
                         {count}
                       </button>
                     ))}
-                    <button
-                      class="am-nv-pill am-nv-pill-compare"
-                      onClick={() => setCompareMode(true)}
-                      type="button"
-                      title={t("agentManager.dialog.compareModels")}
+                    <Tooltip
+                      value={t("agentManager.dialog.compareModels.tooltip")}
+                      placement="top"
+                      contentClass="am-tooltip-wrap"
                     >
-                      <Icon name="layers" size="small" />
-                    </button>
+                      <button class="am-nv-pill am-nv-pill-compare" onClick={() => setCompareMode(true)} type="button">
+                        <Icon name="layers" size="small" />
+                        <span class="am-nv-pill-compare-label">{t("agentManager.dialog.compareModels")}</span>
+                      </button>
+                    </Tooltip>
                   </div>
                   <Show when={versions() > 1}>
                     <span class="am-nv-version-hint">
@@ -495,7 +508,7 @@ export const NewWorktreeDialog: Component<{ onClose: () => void; defaultBaseBran
                   </>
                 }
               >
-                {t("agentManager.dialog.createWorkspace")}
+                {t("agentManager.dialog.createWorktree")}
               </Show>
             </Button>
           </div>
