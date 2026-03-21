@@ -1416,8 +1416,17 @@ export namespace SessionPrompt {
     const userMessage = input.messages.findLast((msg) => msg.info.role === "user")
     if (!userMessage) return input.messages
 
+    // kilocode_change start - helper to identify planning agents
+    const PLANNING_AGENTS = new Set(["plan", "architect"])
+    const isPlanningAgent = PLANNING_AGENTS.has(input.agent.name)
+    const wasPlanningAgent = input.messages.some(
+      (msg) => msg.info.role === "assistant" && PLANNING_AGENTS.has(msg.info.agent),
+    )
+    // kilocode_change end
+
     // Original logic when experimental plan mode is disabled
     if (!Flag.KILO_EXPERIMENTAL_PLAN_MODE) {
+      // kilocode_change start - architect mode gets plan file reminder instead of PROMPT_PLAN
       if (input.agent.name === "plan") {
         userMessage.parts.push({
           id: Identifier.ascending("part"),
@@ -1428,9 +1437,29 @@ export namespace SessionPrompt {
           synthetic: true,
         })
       }
-      const wasPlan = input.messages.some((msg) => msg.info.role === "assistant" && msg.info.agent === "plan")
-      // kilocode_change start - renamed from "build" to "code"
-      if (wasPlan && input.agent.name === "code") {
+      if (input.agent.name === "architect") {
+        const plan = Session.plan(input.session)
+        const exists = await Filesystem.exists(plan)
+        if (!exists) await fs.mkdir(path.dirname(plan), { recursive: true })
+        userMessage.parts.push({
+          id: Identifier.ascending("part"),
+          messageID: userMessage.info.id,
+          sessionID: userMessage.info.sessionID,
+          type: "text",
+          text: `<system-reminder>
+## Plan File
+
+${exists ? `A plan file already exists at ${plan}. You can read it and make incremental edits using the edit tool.` : `No plan file exists yet. You should create your plan at ${plan} using the write tool.`}
+This is the only file you are permitted to edit. All other tools you have access to are read-only.
+
+When you have finalized your plan and are confident it is ready for implementation, call the plan_exit tool to signal completion. Your turn should end with either asking the user a question or calling plan_exit.
+</system-reminder>`,
+          synthetic: true,
+        })
+      }
+      // kilocode_change end
+      // kilocode_change start - handle code-switch from any planning agent
+      if (wasPlanningAgent && input.agent.name === "code") {
         // kilocode_change end
         userMessage.parts.push({
           id: Identifier.ascending("part"),
@@ -1447,8 +1476,9 @@ export namespace SessionPrompt {
     // New plan mode logic when flag is enabled
     const assistantMessage = input.messages.findLast((msg) => msg.info.role === "assistant")
 
-    // Switching from plan mode to build mode
-    if (input.agent.name !== "plan" && assistantMessage?.info.agent === "plan") {
+    // Switching from plan/architect mode to build mode
+    // kilocode_change start - handle architect alongside plan
+    if (!isPlanningAgent && assistantMessage?.info.agent && PLANNING_AGENTS.has(assistantMessage.info.agent)) {
       const plan = Session.plan(input.session)
       const exists = await Filesystem.exists(plan)
       if (exists) {
@@ -1466,8 +1496,9 @@ export namespace SessionPrompt {
       return input.messages
     }
 
-    // Entering plan mode
-    if (input.agent.name === "plan" && assistantMessage?.info.agent !== "plan") {
+    // Entering plan/architect mode
+    // kilocode_change start - handle architect alongside plan
+    if (isPlanningAgent && !(assistantMessage?.info.agent && PLANNING_AGENTS.has(assistantMessage.info.agent))) {
       const plan = Session.plan(input.session)
       const exists = await Filesystem.exists(plan)
       if (!exists) await fs.mkdir(path.dirname(plan), { recursive: true })

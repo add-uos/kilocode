@@ -9,6 +9,7 @@ import { Auth } from "../auth"
 import { ProviderTransform } from "../provider/transform"
 
 import PROMPT_GENERATE from "./generate.txt"
+import PROMPT_ARCHITECT from "./prompt/architect.txt" // kilocode_change
 import PROMPT_COMPACTION from "./prompt/compaction.txt"
 import PROMPT_DEBUG from "./prompt/debug.txt"
 import PROMPT_EXPLORE from "./prompt/explore.txt"
@@ -123,6 +124,35 @@ export namespace Agent {
         mode: "primary",
         native: true,
       },
+      // kilocode_change start - architect mode: planning with hard-enforced restrictions
+      architect: {
+        name: "architect",
+        description:
+          "Plan and design before implementation. Gathers context, asks questions, and produces an actionable plan.",
+        prompt: PROMPT_ARCHITECT,
+        options: {},
+        permission: PermissionNext.merge(
+          defaults,
+          user, // user before architect-specific so architect's deny rules can't be overridden
+          PermissionNext.fromConfig({
+            question: "allow",
+            plan_exit: "allow",
+            external_directory: {
+              [path.join(Global.Path.data, "plans", "*")]: "allow",
+            },
+            edit: {
+              "*": "deny",
+              [path.join(".kilo", "plans", "*.md")]: "allow",
+              [path.join(".opencode", "plans", "*.md")]: "allow",
+              [path.relative(Instance.worktree, path.join(Global.Path.data, path.join("plans", "*.md")))]: "allow",
+            },
+            bash: "ask",
+          }),
+        ),
+        mode: "primary",
+        native: true,
+      },
+      // kilocode_change end
       // kilocode_change start - add debug, orchestrator, and ask agents
       debug: {
         name: "debug",

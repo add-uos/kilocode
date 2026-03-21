@@ -299,12 +299,15 @@ export namespace PlanFollowup {
     }
 
     Telemetry.trackPlanFollowup(input.sessionID, "custom")
+    // kilocode_change start - preserve originating planning agent (plan or architect)
+    const origin = assistant.info.agent
     await inject({
       sessionID: input.sessionID,
-      agent: "plan",
+      agent: origin,
       model: user.model,
       text: answer,
     })
+    // kilocode_change end
     return "continue"
   }
 }
