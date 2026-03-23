@@ -451,7 +451,7 @@ export const DiffPanel: Component<DiffPanelProps> = (props) => {
                             <Show when={props.onRevertFile}>
                               <Tooltip value={t("agentManager.diff.revertFile")} placement="top">
                                 <IconButton
-                                  icon="trash"
+                                  icon="discard"
                                   size="small"
                                   variant="ghost"
                                   class="am-diff-revert-btn"

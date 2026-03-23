@@ -164,7 +164,7 @@ const FileNode: Component<{
       <Show when={props.onRevertFile}>
         <Tooltip value={t("agentManager.diff.revertFile")} placement="right">
           <IconButton
-            icon="trash"
+            icon="discard"
             size="small"
             variant="ghost"
             class="am-file-tree-revert-btn"

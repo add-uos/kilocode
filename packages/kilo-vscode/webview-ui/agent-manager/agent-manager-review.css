@@ -397,7 +397,7 @@
   color: var(--syntax-diff-delete, #da3319);
 }
 
-/* File tree revert button: hidden by default, visible on row hover */
+/* File tree revert button — always visible */
 
 .am-file-tree-file-content {
   display: flex;
@@ -417,36 +417,22 @@
 }
 
 .am-file-tree-revert-btn {
-  opacity: 0;
-  pointer-events: none;
   flex-shrink: 0;
-  transition: opacity 0.15s;
+  color: var(--text-weaker);
 }
 
-.am-file-tree-revert-btn:not(:disabled) {
+.am-file-tree-revert-btn:not(:disabled):hover {
   color: var(--syntax-diff-delete, #da3319);
 }
 
-.am-file-tree-file:hover .am-file-tree-revert-btn {
-  opacity: 1;
-  pointer-events: auto;
-}
-
-/* Diff header revert button: hidden by default, visible on row hover */
+/* Diff header revert button — always visible */
 
 .am-diff-revert-btn {
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.15s;
+  color: var(--text-weaker);
 }
 
-.am-diff-revert-btn:not(:disabled) {
+.am-diff-revert-btn:not(:disabled):hover {
   color: var(--syntax-diff-delete, #da3319);
-}
-
-[data-slot="session-review-trigger-content"]:hover .am-diff-revert-btn {
-  opacity: 1;
-  pointer-events: auto;
 }
 
 /* File tree summary footer */
