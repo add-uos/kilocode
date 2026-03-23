@@ -1586,9 +1586,9 @@ export class AgentManagerProvider implements Disposable {
     }
 
     // Look up the file status from the cached diffs so we know if it's added/modified/deleted
-    const client = this.connectionService.getClient()
     let status: "added" | "deleted" | "modified" | undefined
     try {
+      const client = this.connectionService.getClient()
       const { data } = await client.worktree.diffFile(
         { directory: target.directory, base: target.baseBranch, file },
         { throwOnError: true },

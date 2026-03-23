@@ -313,8 +313,12 @@ export class GitOps {
     if (result.code !== 0) {
       return { ok: false, message: result.stderr.trim() || "Failed to revert file" }
     }
-    // Unstage so the file appears as unmodified relative to HEAD
-    await this.raw(["reset", "HEAD", "--", file], cwd).catch(() => "")
+    // Only unstage for modified files. For deleted files the checkout already
+    // restored the file into the index correctly — resetting to HEAD would drop
+    // it from the index and make it appear as a new untracked file.
+    if (status !== "deleted") {
+      await this.raw(["reset", "HEAD", "--", file], cwd).catch(() => "")
+    }
     return { ok: true, message: "Reverted file to base" }
   }
 
