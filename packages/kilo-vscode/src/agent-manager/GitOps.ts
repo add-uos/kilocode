@@ -316,7 +316,7 @@ export class GitOps {
     // Only unstage for modified files. For deleted files the checkout already
     // restored the file into the index correctly — resetting to HEAD would drop
     // it from the index and make it appear as a new untracked file.
-    if (status !== "deleted") {
+    if (status === "modified") {
       await this.raw(["reset", "HEAD", "--", file], cwd).catch(() => "")
     }
     return { ok: true, message: "Reverted file to base" }
