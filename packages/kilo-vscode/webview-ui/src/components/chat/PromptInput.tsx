@@ -32,15 +32,13 @@ import { ModeSwitcher } from "../shared/ModeSwitcher"
 import { ThinkingSelector } from "../shared/ThinkingSelector"
 import { useFileMention, type FileMention } from "../../hooks/useFileMention"
 import { useSlashCommand } from "../../hooks/useSlashCommand"
+import { useGhostText } from "../../hooks/useGhostText"
 import { useImageAttachments } from "../../hooks/useImageAttachments"
 import { usePromptHistory } from "../../hooks/usePromptHistory"
 import { WandSparkles } from "@kilocode/kilo-ui/lucide"
 import { fileName, dirName, buildHighlightSegments, atEnd } from "./prompt-input-utils"
 import type { ReviewComment, TextPart } from "../../types/messages"
 import { formatReviewCommentsMarkdown } from "../../utils/review-comment-markdown"
-
-const AUTOCOMPLETE_DEBOUNCE_MS = 500
-const MIN_TEXT_LENGTH = 3
 
 // Per-session input text storage (module-level so it survives remounts)
 const drafts = new Map<string, string>()
@@ -96,12 +94,12 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
     if (compose) props.onChange!(v)
     else setOwnText(v)
   }
-  const [ghostText, setGhostText] = createSignal("")
   const [reviewComments, setReviewComments] = createSignal<ReviewComment[]>([])
-  const [chatAutocompleteEnabled, setChatAutocompleteEnabled] = createSignal(false)
   const [enhancing, setEnhancing] = createSignal(false)
   let enhanceCounter = 0
   let preEnhanceText: string | null = null
+
+  const ghost = useGhostText(vscode, text, () => server.isConnected())
 
   const replaceReviewComments = (next: ReviewComment[]) => {
     setReviewComments(next)
@@ -170,8 +168,6 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
   let highlightRef: HTMLDivElement | undefined
   let dropdownRef: HTMLDivElement | undefined
   let slashDropdownRef: HTMLDivElement | undefined
-  let debounceTimer: ReturnType<typeof setTimeout> | undefined
-  let requestCounter = 0
   // Expose mention hook in compose mode
   if (compose) {
     onMount(() => props.mentionRef?.(mention))
@@ -190,7 +186,6 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
         const draft = drafts.get(key) ?? ""
         const pending = reviewDrafts.get(key) ?? []
         setText(draft)
-        setGhostText("")
         setReviewComments(pending)
         history.reset()
         if (textareaRef) {
@@ -260,25 +255,10 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
   }
 
   const unsubscribe = vscode.onMessage((message) => {
-    if (message.type === "chatCompletionResult") {
-      const result = message as { type: "chatCompletionResult"; text: string; requestId: string }
-      if (result.requestId !== `chat-ac-${requestCounter}`) return
-      if (result.text && isAtEnd()) {
-        setGhostText(result.text)
-        return
-      }
-      setGhostText("")
-    }
-
-    if (message.type === "autocompleteSettingsLoaded") {
-      setChatAutocompleteEnabled(message.settings.enableChatAutocomplete)
-    }
-
     // Chat-mode-only message handlers
     if (!compose) {
       if (message.type === "setChatBoxMessage") {
         setText(message.text)
-        setGhostText("")
         if (textareaRef) {
           textareaRef.value = message.text
           adjustHeight()
@@ -290,12 +270,12 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
         const separator = current && !current.endsWith("\n") ? "\n\n" : ""
         const next = current + separator + message.text
         setText(next)
-        setGhostText("")
         if (textareaRef) {
           textareaRef.value = next
           adjustHeight()
           textareaRef.focus()
           textareaRef.scrollTop = textareaRef.scrollHeight
+          syncHighlightScroll()
         }
       }
 
@@ -317,7 +297,6 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
         if (target === sessionKey() && !text().trim() && imageAttach.images().length === 0) {
           if (failed.text) {
             setText(failed.text)
-            setGhostText("")
             if (textareaRef) {
               textareaRef.value = failed.text
               adjustHeight()
@@ -345,7 +324,6 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
       const result = message as import("../../types/messages").EnhancePromptResultMessage
       if (result.requestId === `enhance-${enhanceCounter}`) {
         setText(result.text)
-        setGhostText("")
         setEnhancing(false)
         if (textareaRef) {
           textareaRef.value = result.text
@@ -363,10 +341,6 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
     }
   })
 
-  onMount(() => {
-    vscode.postMessage({ type: "requestAutocompleteSettings" })
-  })
-
   onCleanup(() => {
     if (!compose) {
       const current = text()
@@ -376,39 +350,23 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
       else reviewDrafts.delete(sessionKey())
     }
     unsubscribe()
-    if (debounceTimer) clearTimeout(debounceTimer)
   })
 
-  const requestAutocomplete = (val: string) => {
-    if (val.length < MIN_TEXT_LENGTH || isDisabled() || !chatAutocompleteEnabled() || !isAtEnd()) {
-      setGhostText("")
-      requestCounter++
-      return
-    }
-    requestCounter++
-    vscode.postMessage({ type: "requestChatCompletion", text: val, requestId: `chat-ac-${requestCounter}` })
-  }
-
   const acceptSuggestion = () => {
-    const suggestion = ghostText()
-    if (!suggestion) return
+    const result = ghost.accept()
+    if (!result) return
 
-    const newText = text() + suggestion
-    setText(newText)
-    setGhostText("")
-    vscode.postMessage({ type: "chatCompletionAccepted", suggestionLength: suggestion.length })
+    const val = text() + result.text
+    setText(val)
 
     if (textareaRef) {
-      textareaRef.value = newText
+      textareaRef.value = val
       adjustHeight()
+      syncHighlightScroll()
     }
   }
 
-  const dismissSuggestion = () => setGhostText("")
-  const clearIfNotAtEnd = () => {
-    if (isAtEnd()) return
-    setGhostText("")
-  }
+  const syncGhost = () => ghost.sync(textareaRef)
 
   const scrollToActiveItem = () => {
     if (!dropdownRef) return
@@ -453,21 +411,13 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
     setText(val)
     preEnhanceText = null
     adjustHeight()
-    setGhostText("")
     syncHighlightScroll()
     history.reset()
 
     slash.onInput(val, target.selectionStart ?? val.length)
     mention.onInput(val, target.selectionStart ?? val.length)
-
-    if (slash.show() || mention.showMention()) {
-      setGhostText("")
-      if (debounceTimer) clearTimeout(debounceTimer)
-      return
-    }
-
-    if (debounceTimer) clearTimeout(debounceTimer)
-    debounceTimer = setTimeout(() => requestAutocomplete(val), AUTOCOMPLETE_DEBOUNCE_MS)
+    ghost.setMentionOpen(slash.show() || mention.showMention())
+    ghost.scheduleRequest(val, textareaRef)
   }
 
   const handleKeyDown = (e: KeyboardEvent) => {
@@ -477,7 +427,6 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
       const restored = preEnhanceText
       preEnhanceText = null
       setText(restored)
-      setGhostText("")
       if (textareaRef) {
         textareaRef.value = restored
         adjustHeight()
@@ -486,13 +435,13 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
     }
 
     if (slash.onKeyDown(e, textareaRef, setText, adjustHeight)) {
-      setGhostText("")
+      ghost.setMentionOpen(slash.show())
       queueMicrotask(scrollToActiveSlashItem)
       return
     }
 
     if (mention.onKeyDown(e, textareaRef, setText, adjustHeight)) {
-      setGhostText("")
+      ghost.setMentionOpen(mention.showMention())
       queueMicrotask(scrollToActiveItem)
       return
     }
@@ -508,7 +457,6 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
       if (entry !== null) {
         e.preventDefault()
         setText(entry)
-        setGhostText("")
         if (textareaRef) {
           textareaRef.value = entry
           adjustHeight()
@@ -519,22 +467,22 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
       }
     }
 
-    if (e.key === "Tab" && ghostText()) {
+    if (e.key === "Tab" && ghost.text()) {
       if (!isAtEnd()) return
       e.preventDefault()
       acceptSuggestion()
       return
     }
-    if (e.key === "ArrowRight" && ghostText()) {
+    if (e.key === "ArrowRight" && ghost.text()) {
       if (!isAtEnd()) return
       e.preventDefault()
       acceptSuggestion()
       return
     }
-    if (e.key === "Escape" && ghostText()) {
+    if (e.key === "Escape" && ghost.text()) {
       e.preventDefault()
       e.stopPropagation()
-      dismissSuggestion()
+      ghost.dismiss()
       return
     }
     // Chat-mode-only key bindings
@@ -547,7 +495,6 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
       }
       if (e.key === "Enter" && !e.shiftKey) {
         e.preventDefault()
-        dismissSuggestion()
         handleSend()
       }
     }
@@ -561,7 +508,6 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
     if (!draft) {
       const description = language.t("prompt.action.enhanceDescription")
       setText(description)
-      setGhostText("")
       if (textareaRef) {
         textareaRef.value = description
         adjustHeight()
@@ -590,10 +536,8 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
     // Client-side slash command — runs locally without a backend round-trip
     if (matched?.action) {
       setText("")
-      setGhostText("")
       clearReviewComments()
       imageAttach.clear()
-      if (debounceTimer) clearTimeout(debounceTimer)
       mention.closeMention()
       slash.close()
       drafts.delete(sessionKey())
@@ -626,12 +570,9 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
 
     history.append(draft)
     history.reset()
-    requestCounter++
     setText("")
-    setGhostText("")
     clearReviewComments()
     imageAttach.clear()
-    if (debounceTimer) clearTimeout(debounceTimer)
     mention.closeMention()
     slash.close()
     drafts.delete(sessionKey())
@@ -825,8 +766,8 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
                 </Show>
               )}
             </Index>
-            <Show when={ghostText()}>
-              <span class="prompt-input-ghost-text">{ghostText()}</span>
+            <Show when={ghost.text()}>
+              <span class="prompt-input-ghost-text">{ghost.text()}</span>
             </Show>
           </div>
           <textarea
@@ -837,10 +778,12 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
             value={text()}
             onInput={handleInput}
             onKeyDown={handleKeyDown}
-            onKeyUp={clearIfNotAtEnd}
+            onKeyUp={syncGhost}
             onPaste={handlePaste}
-            onClick={clearIfNotAtEnd}
-            onSelect={clearIfNotAtEnd}
+            onClick={syncGhost}
+            onFocus={syncGhost}
+            onBlur={syncGhost}
+            onSelect={syncGhost}
             onScroll={syncHighlightScroll}
             aria-disabled={compose ? false : isDisabled()}
             rows={props.rows ?? 1}
