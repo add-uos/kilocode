@@ -8,8 +8,10 @@ import { Component, createSignal, createEffect, onMount, onCleanup, Show } from 
 import { List } from "@kilocode/kilo-ui/list"
 import { Button } from "@kilocode/kilo-ui/button"
 import { Checkbox } from "@kilocode/kilo-ui/checkbox"
+import { useDialog } from "@kilocode/kilo-ui/context/dialog"
 import { useVSCode } from "../../context/vscode"
 import { useLanguage } from "../../context/language"
+import { CloudImportDialog } from "../chat/CloudImportDialog"
 import { formatRelativeDate } from "../../utils/date"
 import type { CloudSessionInfo, ExtensionMessage } from "../../types/messages"
 
@@ -56,6 +58,7 @@ interface CloudSessionListProps {
 const CloudSessionList: Component<CloudSessionListProps> = (props) => {
   const vscode = useVSCode()
   const language = useLanguage()
+  const dialog = useDialog()
 
   const [sessions, setSessions] = createSignal<DisplaySession[]>([])
   const [loading, setLoading] = createSignal(false)
@@ -130,6 +133,21 @@ const CloudSessionList: Component<CloudSessionListProps> = (props) => {
         <Checkbox checked={repoOnly()} onChange={setRepoOnly}>
           {language.t("session.cloud.repoOnly") ?? "Only this repository"}
         </Checkbox>
+        <Button
+          variant="secondary"
+          size="small"
+          onClick={() =>
+            dialog.show(() => (
+              <CloudImportDialog
+                onImport={(id) => {
+                  props.onSelectSession?.(id)
+                }}
+              />
+            ))
+          }
+        >
+          {language.t("session.cloud.import")}
+        </Button>
       </div>
       <List<DisplaySession>
         items={sessions()}

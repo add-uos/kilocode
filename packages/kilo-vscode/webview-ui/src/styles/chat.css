@@ -2111,8 +2111,27 @@
 
 .cloud-session-filters {
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   padding: 8px 12px;
   border-bottom: 1px solid var(--vscode-panel-border);
+
+  [data-component="checkbox"] {
+    gap: 8px;
+
+    [data-slot="checkbox-checkbox-label"] {
+      padding-inline-start: 0;
+      margin-inline-end: 0;
+    }
+  }
+}
+
+[data-component="input"][data-variant="normal"] [data-slot="input-wrapper"]:focus-within:not(:has([data-readonly])) {
+  border-color: transparent;
+  box-shadow: none;
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: -1px;
 }
 
 .cloud-session-load-more {
