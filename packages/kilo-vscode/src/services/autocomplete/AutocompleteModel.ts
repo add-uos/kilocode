@@ -139,4 +139,20 @@ export class AutocompleteModel {
     }
     return this.connectionService.getConnectionState() === "connected"
   }
+
+  /**
+   * Check the user's credit balance via the profile endpoint.
+   * Returns true if the user has a positive balance, false otherwise.
+   * Returns false on any error (not connected, fetch failed, etc.).
+   */
+  public async hasBalance(): Promise<boolean> {
+    if (!this.connectionService || this.connectionService.getConnectionState() !== "connected") {
+      return false
+    }
+    const result = await this.connectionService
+      .getClient()
+      .kilo.profile()
+      .catch(() => null)
+    return (result?.data?.balance?.balance ?? 0) > 0
+  }
 }

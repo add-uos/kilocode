@@ -103,46 +103,55 @@ describe("ErrorBackoff", () => {
       expect(backoff.getFatalStatus()).toBe(403)
     })
 
-    it("remains blocked within probe interval", () => {
+    it("remains blocked permanently until reset", () => {
       backoff.failure(new Error("SSE failed: 402 Payment Required"))
       expect(backoff.blocked()).toBe(true)
 
-      // Still blocked on immediate subsequent check
+      // Still blocked on subsequent checks
+      expect(backoff.blocked()).toBe(true)
       expect(backoff.blocked()).toBe(true)
     })
 
-    it("allows a probe after probe interval expires", () => {
+    it("shouldProbe returns false within probe interval", () => {
+      backoff.failure(new Error("SSE failed: 402 Payment Required"))
+      expect(backoff.shouldProbe()).toBe(false)
+    })
+
+    it("shouldProbe returns true after probe interval expires", () => {
       const now = Date.now()
       const original = Date.now
       try {
         Date.now = () => now
         backoff.failure(new Error("SSE failed: 402 Payment Required"))
-        expect(backoff.blocked()).toBe(true)
+        expect(backoff.shouldProbe()).toBe(false)
 
         // Advance past 5 minute probe interval
         Date.now = () => now + 300_001
-        expect(backoff.blocked()).toBe(false)
+        expect(backoff.shouldProbe()).toBe(true)
 
-        // But blocked again immediately (probe window is one-shot)
-        expect(backoff.blocked()).toBe(true)
+        // One-shot: immediately returns false again
+        expect(backoff.shouldProbe()).toBe(false)
       } finally {
         Date.now = original
       }
     })
 
-    it("re-blocks after a probe fails again", () => {
+    it("shouldProbe returns false when not fatal", () => {
+      expect(backoff.shouldProbe()).toBe(false)
+      backoff.failure(new Error("SSE failed: 500 Internal Server Error"))
+      expect(backoff.shouldProbe()).toBe(false)
+    })
+
+    it("stays blocked even after shouldProbe fires", () => {
       const now = Date.now()
       const original = Date.now
       try {
         Date.now = () => now
         backoff.failure(new Error("SSE failed: 402 Payment Required"))
 
-        // Advance past probe interval, unblocked for probe
         Date.now = () => now + 300_001
-        expect(backoff.blocked()).toBe(false)
-
-        // Probe fails with same error
-        backoff.failure(new Error("SSE failed: 402 Payment Required"))
+        expect(backoff.shouldProbe()).toBe(true)
+        // blocked() is still true — caller must explicitly reset()
         expect(backoff.blocked()).toBe(true)
       } finally {
         Date.now = original

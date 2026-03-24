@@ -2,14 +2,14 @@
  * Circuit breaker and exponential backoff for autocomplete request errors.
  *
  * Classifies errors into:
- * - **fatal**: 401, 402, 403 — stops all requests until reset or probe cooldown
+ * - **fatal**: 401, 402, 403 — stops all requests until explicitly reset
  * - **retriable**: 429, 5xx, network errors — exponential backoff with cap
  * - **transient**: abort, unknown — no special handling
  *
  * When a fatal error (like 402 Payment Required) is detected, autocomplete
- * requests are blocked to prevent thousands of wasted API calls. A single
- * probe request is allowed every FATAL_PROBE_INTERVAL_MS so autocomplete
- * self-heals when the user adds credits or re-authenticates externally.
+ * requests are blocked to prevent thousands of wasted API calls. The caller
+ * can periodically check `shouldProbe()` to run a lightweight balance check
+ * and call `reset()` if the user has added credits.
  */
 
 /** Base backoff delay in ms for retriable errors */
@@ -24,7 +24,7 @@ const CIRCUIT_THRESHOLD = 5
 /** Duration in ms the circuit stays open before allowing a probe (5 minutes) */
 const CIRCUIT_COOLDOWN_MS = 300_000
 
-/** Interval between probe requests when a fatal error is active (5 minutes) */
+/** Interval between balance/auth probe checks for fatal errors (5 minutes) */
 const FATAL_PROBE_INTERVAL_MS = 300_000
 
 export type ErrorKind = "fatal" | "retriable" | "transient"
@@ -111,16 +111,8 @@ export class ErrorBackoff {
    * Whether autocomplete requests should be blocked right now.
    */
   blocked(): boolean {
-    // Fatal errors block until reset, but allow a single probe request
-    // every FATAL_PROBE_INTERVAL_MS so autocomplete self-heals when the
-    // user adds credits or re-authenticates externally.
-    if (this.fatal) {
-      const elapsed = Date.now() - this.fatalAt
-      if (elapsed < FATAL_PROBE_INTERVAL_MS) return true
-      // Cooldown expired — allow one probe. If it fails, fatalAt resets.
-      this.fatalAt = Date.now()
-      return false
-    }
+    // Fatal errors block until explicitly reset
+    if (this.fatal) return true
 
     // Circuit breaker is open
     if (this.opened > 0) {
@@ -151,6 +143,20 @@ export class ErrorBackoff {
    */
   getFatalStatus(): number | null {
     return this.fatalStatus
+  }
+
+  /**
+   * Whether it's time for a lightweight probe (e.g. balance check) to see if
+   * the fatal condition has been resolved. Returns true at most once per
+   * FATAL_PROBE_INTERVAL_MS. The caller should check balance/auth and call
+   * reset() if the condition is cleared.
+   */
+  shouldProbe(): boolean {
+    if (!this.fatal) return false
+    const elapsed = Date.now() - this.fatalAt
+    if (elapsed < FATAL_PROBE_INTERVAL_MS) return false
+    this.fatalAt = Date.now()
+    return true
   }
 
   /**
