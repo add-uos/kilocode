@@ -2089,6 +2089,24 @@
   white-space: nowrap;
 }
 
+body.vscode-light .session-list [data-slot="list-item"][data-active="true"] [data-slot="list-item-description"],
+body.vscode-light .session-list [data-slot="list-item"][data-selected="true"] [data-slot="list-item-description"] {
+  color: var(--text-on-interactive-base, white);
+}
+
+body.vscode-light
+  .session-list
+  [data-slot="list-item"][data-active="true"]
+  [data-slot="session-delete-button"]
+  [data-slot="icon-svg"],
+body.vscode-light
+  .session-list
+  [data-slot="list-item"][data-selected="true"]
+  [data-slot="session-delete-button"]
+  [data-slot="icon-svg"] {
+  color: var(--text-on-interactive-base, white);
+}
+
 .session-list [data-slot="session-delete-button"] {
   flex-shrink: 0;
   margin-left: 4px;
@@ -2109,19 +2127,17 @@
   min-height: 0;
 }
 
-.session-list-header {
-  flex-shrink: 0;
-  padding: 4px 8px;
-}
-
+.session-list-header,
 .cloud-session-filters {
   flex-shrink: 0;
   display: flex;
   align-items: center;
   gap: 8px;
   padding: 4px 8px;
-  border-bottom: 1px solid var(--vscode-panel-border);
+  min-height: 40px;
+}
 
+.cloud-session-filters {
   [data-component="checkbox"] {
     gap: 8px;
 
