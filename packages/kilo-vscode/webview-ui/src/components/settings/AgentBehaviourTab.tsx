@@ -302,6 +302,8 @@ const AgentBehaviourTab: Component = () => {
         prompt: editPrompt().trim() || undefined,
       })
     }
+    setAgentView("list")
+    setEditingAgent("")
   }
 
   const renderCreateModeView = () => (
