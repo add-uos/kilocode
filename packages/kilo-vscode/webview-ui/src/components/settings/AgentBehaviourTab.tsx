@@ -10,6 +10,7 @@ import { useDialog } from "@kilocode/kilo-ui/context/dialog"
 import { useConfig } from "../../context/config"
 import { useSession } from "../../context/session"
 import { useLanguage } from "../../context/language"
+import { useVSCode } from "../../context/vscode"
 import type { AgentInfo, SkillInfo } from "../../types/messages"
 import ModeEditView from "./ModeEditView"
 import ModeCreateView from "./ModeCreateView"
@@ -59,6 +60,7 @@ const AgentBehaviourTab: Component = () => {
   const { config, updateConfig } = useConfig()
   const session = useSession()
   const dialog = useDialog()
+  const vscode = useVSCode()
   const [activeSubtab, setActiveSubtab] = createSignal<SubtabId>("agents")
   const [newSkillPath, setNewSkillPath] = createSignal("")
   const [newSkillUrl, setNewSkillUrl] = createSignal("")
@@ -451,20 +453,43 @@ const AgentBehaviourTab: Component = () => {
                       </Show>
                     </div>
                   </div>
-                  <IconButton
-                    size="small"
-                    variant="ghost"
-                    icon="close"
-                    onClick={(e: MouseEvent) => {
-                      e.stopPropagation()
-                      confirmRemoveMcp(name)
-                    }}
-                  />
+                  <div style={{ display: "flex", gap: "4px" }}>
+                    <IconButton
+                      size="small"
+                      variant="ghost"
+                      icon="enter"
+                      title={language.t("settings.agentBehaviour.mcp.restart")}
+                      onClick={(e: MouseEvent) => {
+                        e.stopPropagation()
+                        vscode.postMessage({ type: "restartMcp", name })
+                      }}
+                    />
+                    <IconButton
+                      size="small"
+                      variant="ghost"
+                      icon="close"
+                      onClick={(e: MouseEvent) => {
+                        e.stopPropagation()
+                        confirmRemoveMcp(name)
+                      }}
+                    />
+                  </div>
                 </div>
               )}
             </For>
           </Card>
         </Show>
+
+        {/* Edit config button */}
+        <div style={{ "margin-top": "12px" }}>
+          <Button
+            variant="ghost"
+            size="small"
+            onClick={() => vscode.postMessage({ type: "openFile", filePath: "opencode.json" })}
+          >
+            {language.t("settings.agentBehaviour.mcp.editConfig")}
+          </Button>
+        </div>
       </div>
     )
   }

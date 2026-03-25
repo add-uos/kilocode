@@ -1894,6 +1894,11 @@ export interface RequestRecentsMessage {
   type: "requestRecents"
 }
 
+export interface RestartMcpMessage {
+  type: "restartMcp"
+  name: string
+}
+
 export type WebviewMessage =
   | SendMessageRequest
   | AbortRequest
@@ -2005,6 +2010,7 @@ export type WebviewMessage =
   | SaveCustomProviderMessage
   | PersistRecentsRequest
   | RequestRecentsMessage
+  | RestartMcpMessage
 
 // ============================================
 // VS Code API type

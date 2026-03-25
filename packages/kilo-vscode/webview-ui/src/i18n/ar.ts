@@ -1067,6 +1067,8 @@ export const dict = {
   "settings.agentBehaviour.removeMode.confirm":
     'هل تريد إزالة الوضع "{{name}}"؟ سيؤدي هذا إلى تعطيل الوضع عن طريق تحديث الإعدادات.',
   "settings.agentBehaviour.removeMode.button": "إزالة",
+  "settings.agentBehaviour.mcp.restart": "إعادة تشغيل الخادم",
+  "settings.agentBehaviour.mcp.editConfig": "تعديل opencode.json",
   "settings.agentBehaviour.removeMcp.title": "إزالة خادم MCP",
   "settings.agentBehaviour.removeMcp.confirm": 'هل تريد إزالة خادم MCP "{{name}}"؟ سيؤدي هذا إلى إزالته من الإعدادات.',
   "settings.agentBehaviour.removeMcp.button": "إزالة",
