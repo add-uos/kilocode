@@ -56,7 +56,10 @@ const McpAddView: Component<Props> = (props) => {
       return
     }
     const slug = name().trim()
-    const mcp: McpConfig = transport() === "stdio" ? { command: command().trim() } : { url: url().trim() }
+    const mcp: McpConfig =
+      transport() === "stdio"
+        ? { type: "local", command: command().trim().split(/\s+/) }
+        : { type: "remote", url: url().trim() }
     const existing = config().mcp ?? {}
     updateConfig({ mcp: { ...existing, [slug]: mcp } })
     reset()
