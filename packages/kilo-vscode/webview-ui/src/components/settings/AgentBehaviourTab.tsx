@@ -56,7 +56,7 @@ type AgentView = "list" | "create" | "edit"
 
 const AgentBehaviourTab: Component = () => {
   const language = useLanguage()
-  const { config, updateConfig } = useConfig()
+  const { config, updateConfig, isDirty } = useConfig()
   const session = useSession()
   const dialog = useDialog()
   const [activeSubtab, setActiveSubtab] = createSignal<SubtabId>("agents")
@@ -67,6 +67,13 @@ const AgentBehaviourTab: Component = () => {
   // Agent view state
   const [agentView, setAgentView] = createSignal<AgentView>("list")
   const [editingAgent, setEditingAgent] = createSignal<string>("")
+  // Modes pending removal (hidden from list until save persists the deletion)
+  const [pending, setPending] = createSignal<Set<string>>(new Set())
+
+  // Clear pending removals when config is saved or discarded
+  createEffect(() => {
+    if (!isDirty()) setPending(new Set())
+  })
 
   // Fetch skills whenever the skills subtab becomes active
   createEffect(() => {
@@ -76,6 +83,7 @@ const AgentBehaviourTab: Component = () => {
   })
 
   const agentNames = createMemo(() => {
+    const removed = pending()
     const names = session.agents().map((a) => a.name)
     // Also include any agents from config that might not be in the agent list
     const agents = Object.keys(config().agent ?? {})
@@ -84,7 +92,7 @@ const AgentBehaviourTab: Component = () => {
         names.push(name)
       }
     }
-    return names.sort()
+    return names.filter((n) => !removed.has(n)).sort()
   })
 
   const defaultAgentOptions = createMemo<SelectOption[]>(() => [
@@ -179,7 +187,22 @@ const AgentBehaviourTab: Component = () => {
     ))
   }
 
-  const removableModes = createMemo(() => session.agents().filter((a) => !a.native))
+  const removeMode = (name: string) => {
+    const existing = config().agent ?? {}
+    if (existing[name]) {
+      // Config-based mode: null sentinel deletes the key on save
+      updateConfig({ agent: { ...existing, [name]: null } } as any)
+    } else {
+      // File-based mode (.md/yaml): use direct removal path
+      session.removeMode(name)
+    }
+    // Hide from list immediately
+    setPending((prev) => new Set([...prev, name]))
+    if (editingAgent() === name) {
+      setAgentView("list")
+      setEditingAgent("")
+    }
+  }
 
   const confirmRemoveMode = (agent: AgentInfo) => {
     dialog.show(() => (
@@ -195,17 +218,7 @@ const AgentBehaviourTab: Component = () => {
               size="large"
               onClick={() => {
                 dialog.close()
-                // Delay optimistic removal until after dialog close animation (100ms)
-                // to prevent the reactive list re-render from firing click handlers
-                // on shifted list items while the dialog overlay is still present.
-                setTimeout(() => {
-                  session.removeMode(agent.name)
-                  // If we were editing this mode, go back to list
-                  if (editingAgent() === agent.name) {
-                    setAgentView("list")
-                    setEditingAgent("")
-                  }
-                }, 150)
+                setTimeout(() => removeMode(agent.name), 150)
               }}
             >
               {language.t("settings.agentBehaviour.removeMode.button")}
