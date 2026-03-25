@@ -1582,6 +1582,8 @@ export class KiloProvider implements vscode.WebviewViewProvider, TelemetryProper
     const client = this.client
     if (!client) return
     try {
+      // Disconnect first to safely tear down the active client, then reconnect
+      await client.mcp.disconnect({ name }).catch(() => {})
       await client.mcp.connect({ name }, { throwOnError: true })
       console.log("[Kilo New] KiloProvider: Restarted MCP server:", name)
     } catch (err) {

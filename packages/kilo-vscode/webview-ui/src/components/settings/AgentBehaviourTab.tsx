@@ -480,16 +480,18 @@ const AgentBehaviourTab: Component = () => {
           </Card>
         </Show>
 
-        {/* Edit config button */}
-        <div style={{ "margin-top": "12px" }}>
-          <Button
-            variant="ghost"
-            size="small"
-            onClick={() => vscode.postMessage({ type: "openFile", filePath: "opencode.json" })}
-          >
-            {language.t("settings.agentBehaviour.mcp.editConfig")}
-          </Button>
-        </div>
+        {/* Edit config button — only shown when servers exist (file is present) */}
+        <Show when={mcpEntries().length > 0}>
+          <div style={{ "margin-top": "12px" }}>
+            <Button
+              variant="ghost"
+              size="small"
+              onClick={() => vscode.postMessage({ type: "openFile", filePath: "opencode.json" })}
+            >
+              {language.t("settings.agentBehaviour.mcp.editConfig")}
+            </Button>
+          </div>
+        </Show>
       </div>
     )
   }
