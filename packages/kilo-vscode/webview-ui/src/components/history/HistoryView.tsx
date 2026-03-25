@@ -28,7 +28,7 @@ const HistoryView: Component<HistoryViewProps> = (props) => {
     dialog.show(() => (
       <CloudImportDialog
         onImport={(id) => {
-          props.onSelectSession(id)
+          selectCloudSession(id)
         }}
       />
     ))
