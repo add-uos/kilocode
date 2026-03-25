@@ -352,7 +352,7 @@ This is the fastest way to work with Kilo Code, but also the riskiest. Use it on
 
 ## Overview
 
-The new extension uses a granular, per-tool permission system. You can configure permissions through the **Settings → Auto Approve** tab, which provides a UI with per-tool **Allow / Ask / Deny** dropdowns.
+The extension uses a granular, per-tool permission system. You can configure permissions through the **Settings → Auto Approve** tab, which provides a UI with per-tool **Allow / Ask / Deny** dropdowns.
 
 The UI reads and writes to the same `kilo.json` config files used by the CLI, so changes made in either place are reflected in both.
 
