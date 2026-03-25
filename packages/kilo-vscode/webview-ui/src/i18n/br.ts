@@ -1071,6 +1071,11 @@ export const dict = {
   "settings.agentBehaviour.createMode.nameTaken": "Já existe um modo com este nome",
   "settings.agentBehaviour.editMode": "Editar Modo",
   "settings.agentBehaviour.editMode.description": "Descrição",
+  "settings.agentBehaviour.editMode.whenToUse": "When to Use",
+  "settings.agentBehaviour.editMode.whenToUse.help": "Tells the orchestrator when to delegate tasks to this agent.",
+  "settings.agentBehaviour.editMode.whenToUse.placeholder":
+    "e.g. Use this agent when the user asks for code review or quality analysis",
+  "settings.agentBehaviour.editMode.whenToUse.none": "No description defined for this built-in agent.",
   "settings.agentBehaviour.editMode.prompt": "Prompt do Sistema",
   "settings.agentBehaviour.editMode.save": "Concluído",
   "settings.agentBehaviour.editMode.back": "Voltar à lista",

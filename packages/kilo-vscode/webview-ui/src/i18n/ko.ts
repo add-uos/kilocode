@@ -1062,6 +1062,11 @@ export const dict = {
   "settings.agentBehaviour.createMode.nameTaken": "이 이름의 모드가 이미 존재합니다",
   "settings.agentBehaviour.editMode": "모드 편집",
   "settings.agentBehaviour.editMode.description": "설명",
+  "settings.agentBehaviour.editMode.whenToUse": "When to Use",
+  "settings.agentBehaviour.editMode.whenToUse.help": "Tells the orchestrator when to delegate tasks to this agent.",
+  "settings.agentBehaviour.editMode.whenToUse.placeholder":
+    "e.g. Use this agent when the user asks for code review or quality analysis",
+  "settings.agentBehaviour.editMode.whenToUse.none": "No description defined for this built-in agent.",
   "settings.agentBehaviour.editMode.prompt": "시스템 프롬프트",
   "settings.agentBehaviour.editMode.save": "완료",
   "settings.agentBehaviour.editMode.back": "목록으로 돌아가기",

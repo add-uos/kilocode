@@ -1058,6 +1058,11 @@ export const dict = {
   "settings.agentBehaviour.createMode.nameTaken": "มีโหมดที่มีชื่อนี้อยู่แล้ว",
   "settings.agentBehaviour.editMode": "แก้ไขโหมด",
   "settings.agentBehaviour.editMode.description": "คำอธิบาย",
+  "settings.agentBehaviour.editMode.whenToUse": "When to Use",
+  "settings.agentBehaviour.editMode.whenToUse.help": "Tells the orchestrator when to delegate tasks to this agent.",
+  "settings.agentBehaviour.editMode.whenToUse.placeholder":
+    "e.g. Use this agent when the user asks for code review or quality analysis",
+  "settings.agentBehaviour.editMode.whenToUse.none": "No description defined for this built-in agent.",
   "settings.agentBehaviour.editMode.prompt": "System Prompt",
   "settings.agentBehaviour.editMode.save": "เสร็จสิ้น",
   "settings.agentBehaviour.editMode.back": "กลับไปที่รายการ",

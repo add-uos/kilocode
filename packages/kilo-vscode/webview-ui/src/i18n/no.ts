@@ -1069,6 +1069,11 @@ export const dict = {
   "settings.agentBehaviour.createMode.nameTaken": "En modus med dette navnet eksisterer allerede",
   "settings.agentBehaviour.editMode": "Rediger modus",
   "settings.agentBehaviour.editMode.description": "Beskrivelse",
+  "settings.agentBehaviour.editMode.whenToUse": "When to Use",
+  "settings.agentBehaviour.editMode.whenToUse.help": "Tells the orchestrator when to delegate tasks to this agent.",
+  "settings.agentBehaviour.editMode.whenToUse.placeholder":
+    "e.g. Use this agent when the user asks for code review or quality analysis",
+  "settings.agentBehaviour.editMode.whenToUse.none": "No description defined for this built-in agent.",
   "settings.agentBehaviour.editMode.prompt": "Systemprompt",
   "settings.agentBehaviour.editMode.save": "Ferdig",
   "settings.agentBehaviour.editMode.back": "Tilbake til listen",

@@ -1071,6 +1071,11 @@ export const dict = {
   "settings.agentBehaviour.createMode.nameTaken": "Mod s ovim nazivom već postoji",
   "settings.agentBehaviour.editMode": "Uredi mod",
   "settings.agentBehaviour.editMode.description": "Opis",
+  "settings.agentBehaviour.editMode.whenToUse": "When to Use",
+  "settings.agentBehaviour.editMode.whenToUse.help": "Tells the orchestrator when to delegate tasks to this agent.",
+  "settings.agentBehaviour.editMode.whenToUse.placeholder":
+    "e.g. Use this agent when the user asks for code review or quality analysis",
+  "settings.agentBehaviour.editMode.whenToUse.none": "No description defined for this built-in agent.",
   "settings.agentBehaviour.editMode.prompt": "Sistemski prompt",
   "settings.agentBehaviour.editMode.save": "Gotovo",
   "settings.agentBehaviour.editMode.back": "Nazad na listu",

@@ -83,19 +83,37 @@ const ModeEditView: Component<Props> = (props) => {
         </Card>
       </Show>
 
-      {/* Description (full-width, custom modes only) */}
-      <Show when={!native()}>
-        <Card style={{ "margin-bottom": "12px" }}>
-          <div data-slot="settings-row-label-title" style={{ "margin-bottom": "8px" }}>
-            {language.t("settings.agentBehaviour.editMode.description")}
-          </div>
+      {/* When to Use (shown for all agents — editable for custom, read-only for built-in) */}
+      <Card style={{ "margin-bottom": "12px" }}>
+        <div data-slot="settings-row-label-title" style={{ "margin-bottom": "4px" }}>
+          {language.t("settings.agentBehaviour.editMode.whenToUse")}
+        </div>
+        <div data-slot="settings-row-label-subtitle" style={{ "margin-bottom": "8px" }}>
+          {language.t("settings.agentBehaviour.editMode.whenToUse.help")}
+        </div>
+        <Show
+          when={!native()}
+          fallback={
+            <div
+              style={{
+                "font-size": "12px",
+                color: "var(--text-weak-base, var(--vscode-descriptionForeground))",
+                "white-space": "pre-wrap",
+                "line-height": "1.5",
+              }}
+            >
+              {agent()?.description ?? language.t("settings.agentBehaviour.editMode.whenToUse.none")}
+            </div>
+          }
+        >
           <TextField
             value={cfg().description ?? ""}
-            placeholder={language.t("settings.agentBehaviour.createMode.description.placeholder")}
+            placeholder={language.t("settings.agentBehaviour.editMode.whenToUse.placeholder")}
+            multiline
             onChange={(val) => update({ description: val || undefined })}
           />
-        </Card>
-      </Show>
+        </Show>
+      </Card>
 
       {/* Prompt (full-width, auto-resizing) */}
       <Card style={{ "margin-bottom": "12px" }}>

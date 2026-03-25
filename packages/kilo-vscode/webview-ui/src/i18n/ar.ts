@@ -1058,6 +1058,11 @@ export const dict = {
   "settings.agentBehaviour.createMode.nameTaken": "يوجد وضع بهذا الاسم بالفعل",
   "settings.agentBehaviour.editMode": "تعديل الوضع",
   "settings.agentBehaviour.editMode.description": "الوصف",
+  "settings.agentBehaviour.editMode.whenToUse": "When to Use",
+  "settings.agentBehaviour.editMode.whenToUse.help": "Tells the orchestrator when to delegate tasks to this agent.",
+  "settings.agentBehaviour.editMode.whenToUse.placeholder":
+    "e.g. Use this agent when the user asks for code review or quality analysis",
+  "settings.agentBehaviour.editMode.whenToUse.none": "No description defined for this built-in agent.",
   "settings.agentBehaviour.editMode.prompt": "موجه النظام",
   "settings.agentBehaviour.editMode.save": "تم",
   "settings.agentBehaviour.editMode.back": "العودة إلى القائمة",
