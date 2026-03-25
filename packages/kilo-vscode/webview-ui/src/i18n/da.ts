@@ -1076,7 +1076,6 @@ export const dict = {
     'Vil du fjerne tilstanden "{{name}}"? Dette vil deaktivere tilstanden ved at opdatere din konfiguration.',
   "settings.agentBehaviour.removeMode.button": "Fjern",
   "settings.agentBehaviour.mcp.restart": "Genstart server",
-  "settings.agentBehaviour.mcp.editConfig": "Rediger opencode.json",
   "settings.agentBehaviour.removeMcp.title": "Fjern MCP-server",
   "settings.agentBehaviour.removeMcp.confirm":
     'Vil du fjerne MCP-serveren "{{name}}"? Dette vil fjerne den fra din konfiguration.',

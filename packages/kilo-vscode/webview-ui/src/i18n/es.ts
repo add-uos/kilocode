@@ -1085,7 +1085,6 @@ export const dict = {
     '¿Eliminar el modo "{{name}}"? Esto desactivará el modo actualizando su configuración.',
   "settings.agentBehaviour.removeMode.button": "Eliminar",
   "settings.agentBehaviour.mcp.restart": "Reiniciar servidor",
-  "settings.agentBehaviour.mcp.editConfig": "Editar opencode.json",
   "settings.agentBehaviour.removeMcp.title": "Eliminar servidor MCP",
   "settings.agentBehaviour.removeMcp.confirm":
     '¿Eliminar el servidor MCP "{{name}}"? Esto lo eliminará de su configuración.',

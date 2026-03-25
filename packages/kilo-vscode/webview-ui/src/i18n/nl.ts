@@ -1071,7 +1071,6 @@ export const dict = {
   "settings.agentBehaviour.instructionFiles.description":
     "Paden naar aanvullende instructiebestanden die zijn opgenomen in de systeem prompt",
   "settings.agentBehaviour.mcp.restart": "Server herstarten",
-  "settings.agentBehaviour.mcp.editConfig": "opencode.json bewerken",
   "settings.agentBehaviour.removeMcp.title": "Verwijder MCP-server",
   "settings.agentBehaviour.removeMcp.confirm":
     'MCP-server "{{name}}" verwijderen? Dit zal deze uit je configuratie verwijderen.',

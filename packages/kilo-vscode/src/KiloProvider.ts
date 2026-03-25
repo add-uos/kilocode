@@ -1581,10 +1581,11 @@ export class KiloProvider implements vscode.WebviewViewProvider, TelemetryProper
   private async handleRestartMcp(name: string): Promise<void> {
     const client = this.client
     if (!client) return
+    const directory = this.getProjectDirectory(this.currentSession?.id)
     try {
       // Disconnect first to safely tear down the active client, then reconnect
-      await client.mcp.disconnect({ name }).catch(() => {})
-      await client.mcp.connect({ name }, { throwOnError: true })
+      await client.mcp.disconnect({ name, directory }).catch(() => {})
+      await client.mcp.connect({ name, directory }, { throwOnError: true })
       console.log("[Kilo New] KiloProvider: Restarted MCP server:", name)
     } catch (err) {
       console.error("[Kilo New] KiloProvider: Failed to restart MCP server:", name, err)

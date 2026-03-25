@@ -1070,7 +1070,6 @@ export const dict = {
   "settings.agentBehaviour.instructionFiles.description":
     "Sistem komutuna dahil edilen ek talimat dosyalarının yolları",
   "settings.agentBehaviour.mcp.restart": "Sunucuyu yeniden başlat",
-  "settings.agentBehaviour.mcp.editConfig": "opencode.json dosyasını düzenle",
   "settings.agentBehaviour.removeMcp.title": "MCP sunucusunu kaldır",
   "settings.agentBehaviour.removeMcp.confirm":
     '"{{name}}" MCP sunucusu kaldırılsın mı? Bu, yapılandırmanızdan kaldırılacak.',
