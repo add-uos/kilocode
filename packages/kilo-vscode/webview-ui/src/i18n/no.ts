@@ -1082,6 +1082,11 @@ export const dict = {
   "settings.agentBehaviour.removeMcp.confirm":
     'Vil du fjerne MCP-serveren "{{name}}"? Dette vil fjerne den fra konfigurasjonen din.',
   "settings.agentBehaviour.removeMcp.button": "Fjern",
+  "settings.agentBehaviour.editMcp": "Rediger MCP-server",
+  "settings.agentBehaviour.editMcp.transportLocal": "Lokal server (stdio-transport)",
+  "settings.agentBehaviour.editMcp.transportRemote": "Ekstern server (SSE/HTTP-transport)",
+  "settings.agentBehaviour.editMcp.env": "Miljøvariabler",
+  "settings.agentBehaviour.editMcp.env.help": "Variabler som sendes til MCP-serverprosessen.",
   "settings.agentBehaviour.skillPaths": "Ferdighetsmappe-stier",
   "settings.agentBehaviour.skillUrls": "Ferdighets-URLer",
   "settings.agentBehaviour.removeSkill.title": "Fjern ferdighet",

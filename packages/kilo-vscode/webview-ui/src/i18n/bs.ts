@@ -1084,6 +1084,11 @@ export const dict = {
   "settings.agentBehaviour.removeMcp.confirm":
     'Ukloniti MCP server "{{name}}"? Ovo će ga ukloniti iz vaše konfiguracije.',
   "settings.agentBehaviour.removeMcp.button": "Ukloni",
+  "settings.agentBehaviour.editMcp": "Uredi MCP Server",
+  "settings.agentBehaviour.editMcp.transportLocal": "Lokalni server (stdio transport)",
+  "settings.agentBehaviour.editMcp.transportRemote": "Udaljeni server (SSE/HTTP transport)",
+  "settings.agentBehaviour.editMcp.env": "Varijable okruženja",
+  "settings.agentBehaviour.editMcp.env.help": "Varijable proslijeđene procesu MCP servera.",
   "settings.agentBehaviour.skillPaths": "Putanje mapa vještina",
   "settings.agentBehaviour.skillUrls": "URL-ovi vještina",
   "settings.agentBehaviour.removeSkill.title": "Ukloni vještinu",

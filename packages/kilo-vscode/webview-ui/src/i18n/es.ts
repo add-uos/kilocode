@@ -1088,6 +1088,11 @@ export const dict = {
   "settings.agentBehaviour.removeMcp.confirm":
     '¿Eliminar el servidor MCP "{{name}}"? Esto lo eliminará de su configuración.',
   "settings.agentBehaviour.removeMcp.button": "Eliminar",
+  "settings.agentBehaviour.editMcp": "Editar servidor MCP",
+  "settings.agentBehaviour.editMcp.transportLocal": "Servidor local (transporte stdio)",
+  "settings.agentBehaviour.editMcp.transportRemote": "Servidor remoto (transporte SSE/HTTP)",
+  "settings.agentBehaviour.editMcp.env": "Variables de entorno",
+  "settings.agentBehaviour.editMcp.env.help": "Variables pasadas al proceso del servidor MCP.",
   "settings.agentBehaviour.skillPaths": "Rutas de carpetas de habilidades",
   "settings.agentBehaviour.skillUrls": "URLs de habilidades",
   "settings.agentBehaviour.removeSkill.title": "Eliminar habilidad",

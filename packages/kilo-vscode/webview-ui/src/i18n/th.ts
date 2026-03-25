@@ -1071,6 +1071,11 @@ export const dict = {
   "settings.agentBehaviour.removeMcp.confirm":
     'ต้องการลบเซิร์ฟเวอร์ MCP "{{name}}" หรือไม่? การดำเนินการนี้จะลบออกจากการกำหนดค่าของคุณ',
   "settings.agentBehaviour.removeMcp.button": "ลบ",
+  "settings.agentBehaviour.editMcp": "แก้ไขเซิร์ฟเวอร์ MCP",
+  "settings.agentBehaviour.editMcp.transportLocal": "เซิร์ฟเวอร์ภายใน (การขนส่ง stdio)",
+  "settings.agentBehaviour.editMcp.transportRemote": "เซิร์ฟเวอร์ระยะไกล (การขนส่ง SSE/HTTP)",
+  "settings.agentBehaviour.editMcp.env": "ตัวแปรสภาพแวดล้อม",
+  "settings.agentBehaviour.editMcp.env.help": "ตัวแปรที่ส่งไปยังกระบวนการเซิร์ฟเวอร์ MCP",
   "settings.agentBehaviour.skillPaths": "เส้นทางโฟลเดอร์ทักษะ",
   "settings.agentBehaviour.skillUrls": "URL ทักษะ",
   "settings.agentBehaviour.removeSkill.title": "ลบทักษะ",

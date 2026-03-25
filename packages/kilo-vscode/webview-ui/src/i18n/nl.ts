@@ -1074,6 +1074,11 @@ export const dict = {
   "settings.agentBehaviour.removeMcp.confirm":
     'MCP-server "{{name}}" verwijderen? Dit zal deze uit je configuratie verwijderen.',
   "settings.agentBehaviour.removeMcp.button": "Verwijderen",
+  "settings.agentBehaviour.editMcp": "MCP-server bewerken",
+  "settings.agentBehaviour.editMcp.transportLocal": "Lokale server (stdio-transport)",
+  "settings.agentBehaviour.editMcp.transportRemote": "Externe server (SSE/HTTP-transport)",
+  "settings.agentBehaviour.editMcp.env": "Omgevingsvariabelen",
+  "settings.agentBehaviour.editMcp.env.help": "Variabelen die worden doorgegeven aan het MCP-serverproces.",
   "settings.agentBehaviour.mcpEmpty":
     "Geen MCP-servers geconfigureerd. Bewerk het opencode configuratiebestand om MCP-servers toe te voegen.",
   "settings.agentBehaviour.workflowsPlaceholder": "Workflows worden beheerd via workflowbestanden in je workspace.",

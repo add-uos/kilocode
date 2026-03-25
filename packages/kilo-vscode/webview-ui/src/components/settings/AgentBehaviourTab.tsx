@@ -13,6 +13,7 @@ import { useLanguage } from "../../context/language"
 import type { AgentInfo, SkillInfo } from "../../types/messages"
 import ModeEditView from "./ModeEditView"
 import ModeCreateView from "./ModeCreateView"
+import McpEditView from "./McpEditView"
 
 type SubtabId = "agents" | "mcpServers" | "rules" | "workflows" | "skills"
 
@@ -67,6 +68,9 @@ const AgentBehaviourTab: Component = () => {
   // Agent view state
   const [agentView, setAgentView] = createSignal<AgentView>("list")
   const [editingAgent, setEditingAgent] = createSignal<string>("")
+
+  // MCP view state
+  const [editingMcp, setEditingMcp] = createSignal<string>("")
 
   // Fetch skills whenever the skills subtab becomes active
   createEffect(() => {
@@ -399,6 +403,19 @@ const AgentBehaviourTab: Component = () => {
   const renderMcpSubtab = () => {
     const mcpEntries = createMemo(() => Object.entries(config().mcp ?? {}))
 
+    if (editingMcp()) {
+      return (
+        <McpEditView
+          name={editingMcp()}
+          onBack={() => setEditingMcp("")}
+          onRemove={(name) => {
+            confirmRemoveMcp(name)
+            setEditingMcp("")
+          }}
+        />
+      )
+    }
+
     return (
       <div>
         <Show
@@ -424,8 +441,17 @@ const AgentBehaviourTab: Component = () => {
                     display: "flex",
                     "align-items": "center",
                     "justify-content": "space-between",
-                    padding: "8px 0",
+                    padding: "8px 4px",
                     "border-bottom": index() < mcpEntries().length - 1 ? "1px solid var(--border-weak-base)" : "none",
+                    "border-radius": "4px",
+                    cursor: "pointer",
+                  }}
+                  onClick={() => setEditingMcp(name)}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = "var(--bg-hover-base, var(--vscode-list-hoverBackground))"
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = "transparent"
                   }}
                 >
                   <div style={{ flex: 1, "min-width": 0 }}>
@@ -436,30 +462,35 @@ const AgentBehaviourTab: Component = () => {
                         color: "var(--text-weak-base, var(--vscode-descriptionForeground))",
                         "margin-top": "4px",
                         "font-family": "var(--vscode-editor-font-family, monospace)",
+                        overflow: "hidden",
+                        "text-overflow": "ellipsis",
+                        "white-space": "nowrap",
                       }}
                     >
                       <Show when={mcp.command}>
                         <div>
-                          command:{" "}
                           {Array.isArray(mcp.command)
                             ? mcp.command.join(" ")
                             : `${mcp.command} ${(mcp.args ?? []).join(" ")}`}
                         </div>
                       </Show>
                       <Show when={mcp.url}>
-                        <div>url: {mcp.url}</div>
+                        <div>{mcp.url}</div>
                       </Show>
                     </div>
                   </div>
-                  <IconButton
-                    size="small"
-                    variant="ghost"
-                    icon="close"
-                    onClick={(e: MouseEvent) => {
-                      e.stopPropagation()
-                      confirmRemoveMcp(name)
-                    }}
-                  />
+                  <div style={{ display: "flex", gap: "4px" }}>
+                    <IconButton
+                      size="small"
+                      variant="ghost"
+                      icon="close"
+                      onClick={(e: MouseEvent) => {
+                        e.stopPropagation()
+                        confirmRemoveMcp(name)
+                      }}
+                    />
+                    <IconButton size="small" variant="ghost" icon="chevron-right" />
+                  </div>
                 </div>
               )}
             </For>
@@ -728,11 +759,12 @@ const AgentBehaviourTab: Component = () => {
             <button
               onClick={() => {
                 setActiveSubtab(subtab.id)
-                // Reset agent view when switching subtabs
+                // Reset views when switching subtabs
                 if (subtab.id === "agents") {
                   setAgentView("list")
                   setEditingAgent("")
                 }
+                setEditingMcp("")
               }}
               style={{
                 padding: "8px 16px",
