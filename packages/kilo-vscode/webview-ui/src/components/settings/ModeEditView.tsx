@@ -172,7 +172,17 @@ const ModeEditView: Component<Props> = (props) => {
           title={language.t("settings.agentBehaviour.hidden.title")}
           description={language.t("settings.agentBehaviour.hidden.description")}
         >
-          <Switch checked={cfg().hidden ?? false} onChange={(val) => update({ hidden: val || undefined })} hideLabel>
+          <Switch
+            checked={cfg().hidden ?? false}
+            onChange={(val) => {
+              update({ hidden: val || undefined })
+              // Clear default_agent if hiding the current default
+              if (val && config().default_agent === props.name) {
+                updateConfig({ default_agent: undefined })
+              }
+            }}
+            hideLabel
+          >
             {language.t("settings.agentBehaviour.hidden.title")}
           </Switch>
         </SettingsRow>
@@ -182,7 +192,17 @@ const ModeEditView: Component<Props> = (props) => {
           description={language.t("settings.agentBehaviour.disable.description")}
           last
         >
-          <Switch checked={cfg().disable ?? false} onChange={(val) => update({ disable: val || undefined })} hideLabel>
+          <Switch
+            checked={cfg().disable ?? false}
+            onChange={(val) => {
+              update({ disable: val || undefined })
+              // Clear default_agent if disabling the current default
+              if (val && config().default_agent === props.name) {
+                updateConfig({ default_agent: undefined })
+              }
+            }}
+            hideLabel
+          >
             {language.t("settings.agentBehaviour.disable.title")}
           </Switch>
         </SettingsRow>
