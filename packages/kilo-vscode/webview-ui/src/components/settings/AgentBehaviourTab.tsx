@@ -754,8 +754,8 @@ const AgentBehaviourTab: Component = () => {
                 if (subtab.id === "agents") {
                   setAgentView("list")
                   setEditingAgent("")
-                  setMcpView("list")
                 }
+                setMcpView("list")
               }}
               style={{
                 padding: "8px 16px",
