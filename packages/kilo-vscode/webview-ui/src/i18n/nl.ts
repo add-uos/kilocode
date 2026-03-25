@@ -1057,11 +1057,12 @@ export const dict = {
     "Geen skills ontdekt. Voeg hieronder skill mappaden of URL's toe om skills beschikbaar te maken.",
   "settings.agentBehaviour.availableModes": "Beschikbare Aangepaste Modi",
   "settings.agentBehaviour.noModesFound": "Geen modi gevonden.",
-  "settings.agentBehaviour.editMode.whenToUse": "When to Use",
-  "settings.agentBehaviour.editMode.whenToUse.help": "Tells the orchestrator when to delegate tasks to this agent.",
+  "settings.agentBehaviour.editMode.whenToUse": "Wanneer gebruiken",
+  "settings.agentBehaviour.editMode.whenToUse.help":
+    "Vertelt de orchestrator wanneer taken aan deze agent moeten worden gedelegeerd.",
   "settings.agentBehaviour.editMode.whenToUse.placeholder":
-    "e.g. Use this agent when the user asks for code review or quality analysis",
-  "settings.agentBehaviour.editMode.whenToUse.none": "No description defined for this built-in agent.",
+    "bijv. Gebruik deze agent wanneer de gebruiker vraagt om code review of kwaliteitsanalyse",
+  "settings.agentBehaviour.editMode.whenToUse.none": "Geen beschrijving gedefinieerd voor deze ingebouwde agent.",
   "settings.agentBehaviour.removeMode.title": "Verwijder modus",
   "settings.agentBehaviour.removeMode.confirm":
     'Modus "{{name}}" verwijderen? Dit zal de modus uitschakelen door je configuratie bij te werken.',

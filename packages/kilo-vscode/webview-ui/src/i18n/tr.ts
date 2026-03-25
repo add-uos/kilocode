@@ -1056,11 +1056,12 @@ export const dict = {
     "Keşfedilen beceri yok. Becerileri kullanılabilir kılmak için aşağıya beceri klasör yolları veya URL'ler ekleyin.",
   "settings.agentBehaviour.availableModes": "Mevcut Özel Modlar",
   "settings.agentBehaviour.noModesFound": "Mod bulunamadı.",
-  "settings.agentBehaviour.editMode.whenToUse": "When to Use",
-  "settings.agentBehaviour.editMode.whenToUse.help": "Tells the orchestrator when to delegate tasks to this agent.",
+  "settings.agentBehaviour.editMode.whenToUse": "Ne Zaman Kullanılmalı",
+  "settings.agentBehaviour.editMode.whenToUse.help":
+    "Orkestratöre bu ajana görevlerin ne zaman devredileceğini belirtir.",
   "settings.agentBehaviour.editMode.whenToUse.placeholder":
-    "e.g. Use this agent when the user asks for code review or quality analysis",
-  "settings.agentBehaviour.editMode.whenToUse.none": "No description defined for this built-in agent.",
+    "ör. Kullanıcı kod incelemesi veya kalite analizi istediğinde bu ajanı kullan",
+  "settings.agentBehaviour.editMode.whenToUse.none": "Bu yerleşik ajan için tanımlanmış bir açıklama yok.",
   "settings.agentBehaviour.removeMode.title": "Modu kaldır",
   "settings.agentBehaviour.removeMode.confirm":
     '"{{name}}" modu kaldırılsın mı? Bu, yapılandırmanızı güncelleyerek modu devre dışı bırakacak.',
