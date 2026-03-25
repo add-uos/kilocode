@@ -72,7 +72,8 @@ const AgentBehaviourTab: Component = () => {
 
   // Clear pending removals when config is saved or discarded
   createEffect(() => {
-    if (!isDirty()) setPending(new Set())
+    const dirty = isDirty()
+    if (!dirty && pending().size > 0) setPending(new Set<string>())
   })
 
   // Fetch skills whenever the skills subtab becomes active
