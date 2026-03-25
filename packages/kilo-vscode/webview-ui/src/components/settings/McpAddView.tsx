@@ -56,6 +56,9 @@ const McpAddView: Component<Props> = (props) => {
       return
     }
     const slug = name().trim()
+    // Split command into argv array — the CLI expects command[0] as the
+    // binary and command[1..] as arguments. Whitespace splitting matches
+    // how MCP server docs present commands (e.g. "npx -y @mcp/server /tmp").
     const mcp: McpConfig =
       transport() === "stdio"
         ? { type: "local", command: command().trim().split(/\s+/) }
