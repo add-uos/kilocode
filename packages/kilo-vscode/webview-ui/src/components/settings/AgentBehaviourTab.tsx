@@ -13,6 +13,7 @@ import { useLanguage } from "../../context/language"
 import type { AgentInfo, SkillInfo } from "../../types/messages"
 import ModeEditView from "./ModeEditView"
 import ModeCreateView from "./ModeCreateView"
+import McpAddView from "./McpAddView"
 
 type SubtabId = "agents" | "mcpServers" | "rules" | "workflows" | "skills"
 
@@ -67,6 +68,9 @@ const AgentBehaviourTab: Component = () => {
   // Agent view state
   const [agentView, setAgentView] = createSignal<AgentView>("list")
   const [editingAgent, setEditingAgent] = createSignal<string>("")
+
+  // MCP view state
+  const [mcpView, setMcpView] = createSignal<"list" | "add">("list")
 
   // Fetch skills whenever the skills subtab becomes active
   createEffect(() => {
@@ -398,9 +402,27 @@ const AgentBehaviourTab: Component = () => {
 
   const renderMcpSubtab = () => {
     const mcpEntries = createMemo(() => Object.entries(config().mcp ?? {}))
+    const mcpNames = createMemo(() => Object.keys(config().mcp ?? {}))
+
+    if (mcpView() === "add") {
+      return <McpAddView taken={mcpNames()} onBack={() => setMcpView("list")} />
+    }
 
     return (
       <div>
+        {/* Add button */}
+        <div
+          style={{
+            display: "flex",
+            "justify-content": "flex-end",
+            "margin-bottom": "8px",
+          }}
+        >
+          <Button variant="secondary" size="small" onClick={() => setMcpView("add")}>
+            {language.t("settings.agentBehaviour.addMcp")}
+          </Button>
+        </div>
+
         <Show
           when={mcpEntries().length > 0}
           fallback={
@@ -732,6 +754,7 @@ const AgentBehaviourTab: Component = () => {
                 if (subtab.id === "agents") {
                   setAgentView("list")
                   setEditingAgent("")
+                  setMcpView("list")
                 }
               }}
               style={{
