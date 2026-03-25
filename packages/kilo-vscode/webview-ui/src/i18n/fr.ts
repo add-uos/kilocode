@@ -1121,9 +1121,12 @@ export const dict = {
   "settings.agentBehaviour.addMcp.transport.stdio": "Commande (stdio)",
   "settings.agentBehaviour.addMcp.transport.sse": "URL (SSE/HTTP)",
   "settings.agentBehaviour.addMcp.command": "Commande",
-  "settings.agentBehaviour.addMcp.command.help":
-    "La commande et les arguments pour démarrer le processus du serveur MCP.",
-  "settings.agentBehaviour.addMcp.command.placeholder": "e.g. npx -y @modelcontextprotocol/server-filesystem /tmp",
+  "settings.agentBehaviour.addMcp.command.help": "L'exécutable à lancer (ex. npx, node, python).",
+  "settings.agentBehaviour.addMcp.command.placeholder": "ex. npx",
+  "settings.agentBehaviour.addMcp.args": "Arguments",
+  "settings.agentBehaviour.addMcp.args.help":
+    "Un argument par ligne. Les chemins avec des espaces sont conservés tels quels.",
+  "settings.agentBehaviour.addMcp.args.placeholder": "ex.\n-y\n@modelcontextprotocol/server-filesystem\n/tmp",
   "settings.agentBehaviour.addMcp.commandRequired": "La commande est requise pour le transport stdio.",
   "settings.agentBehaviour.addMcp.url": "URL du Serveur",
   "settings.agentBehaviour.addMcp.url.help": "L'URL du serveur MCP en cours d'exécution.",

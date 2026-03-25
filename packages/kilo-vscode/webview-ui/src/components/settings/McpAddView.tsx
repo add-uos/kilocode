@@ -23,6 +23,7 @@ const McpAddView: Component<Props> = (props) => {
   const [name, setName] = createSignal("")
   const [transport, setTransport] = createSignal<Transport>("stdio")
   const [command, setCommand] = createSignal("")
+  const [args, setArgs] = createSignal("")
   const [url, setUrl] = createSignal("")
   const [error, setError] = createSignal("")
 
@@ -40,6 +41,7 @@ const McpAddView: Component<Props> = (props) => {
     setName("")
     setTransport("stdio")
     setCommand("")
+    setArgs("")
     setUrl("")
     setError("")
   }
@@ -56,13 +58,11 @@ const McpAddView: Component<Props> = (props) => {
       return
     }
     const slug = name().trim()
-    // Split command into argv array — the CLI expects command[0] as the
-    // binary and command[1..] as arguments. Whitespace splitting matches
-    // how MCP server docs present commands (e.g. "npx -y @mcp/server /tmp").
+    // Build command array from separate command/args fields to avoid
+    // whitespace-splitting issues with quoted paths or values.
+    const argv = [command().trim(), ...args().trim().split(/\n/).filter(Boolean)]
     const mcp: McpConfig =
-      transport() === "stdio"
-        ? { type: "local", command: command().trim().split(/\s+/) }
-        : { type: "remote", url: url().trim() }
+      transport() === "stdio" ? { type: "local", command: argv } : { type: "remote", url: url().trim() }
     const existing = config().mcp ?? {}
     updateConfig({ mcp: { ...existing, [slug]: mcp } })
     reset()
@@ -143,6 +143,20 @@ const McpAddView: Component<Props> = (props) => {
             value={command()}
             placeholder={language.t("settings.agentBehaviour.addMcp.command.placeholder")}
             onChange={(val) => setCommand(val)}
+          />
+        </Card>
+        <Card style={{ "margin-bottom": "12px" }}>
+          <div data-slot="settings-row-label-title" style={{ "margin-bottom": "4px" }}>
+            {language.t("settings.agentBehaviour.addMcp.args")}
+          </div>
+          <div data-slot="settings-row-label-subtitle" style={{ "margin-bottom": "8px" }}>
+            {language.t("settings.agentBehaviour.addMcp.args.help")}
+          </div>
+          <TextField
+            value={args()}
+            placeholder={language.t("settings.agentBehaviour.addMcp.args.placeholder")}
+            multiline
+            onChange={(val) => setArgs(val)}
           />
         </Card>
       </Show>
