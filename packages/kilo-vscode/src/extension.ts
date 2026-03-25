@@ -183,39 +183,19 @@ export function activate(context: vscode.ExtensionContext) {
     (() => {
       let maximized = false
       return vscode.commands.registerCommand("kilo-code.new.supersizeSidebar", async () => {
-        // Detect which sidebar the view is in by focusing the auxiliary bar
-        // and checking if our WebviewView becomes visible.
-        const view = provider.view
-        if (!view) return
-
-        // Focus our view so it's guaranteed active
         await vscode.commands.executeCommand(`${KiloProvider.viewType}.focus`)
-
-        // Check if view is in auxiliary bar: toggle auxiliary bar off,
-        // if our view becomes invisible it was there.
-        await vscode.commands.executeCommand("workbench.action.toggleAuxiliaryBar")
-        const inAuxiliary = !view.visible
-        // Restore auxiliary bar to original state
-        await vscode.commands.executeCommand("workbench.action.toggleAuxiliaryBar")
-
+        // increaseViewSize only affects the primary sidebar, and
+        // maximizeAuxiliaryBar only affects the secondary sidebar,
+        // so calling both is safe — only the relevant one has effect.
         if (maximized) {
-          if (inAuxiliary) {
-            await vscode.commands.executeCommand("workbench.action.restoreAuxiliaryBar")
-          } else {
-            await vscode.commands.executeCommand(`${KiloProvider.viewType}.focus`)
-            for (let i = 0; i < 20; i++) {
-              await vscode.commands.executeCommand("workbench.action.decreaseViewSize")
-            }
+          await vscode.commands.executeCommand("workbench.action.restoreAuxiliaryBar")
+          for (let i = 0; i < 20; i++) {
+            await vscode.commands.executeCommand("workbench.action.decreaseViewSize")
           }
         } else {
-          if (inAuxiliary) {
-            await vscode.commands.executeCommand(`${KiloProvider.viewType}.focus`)
-            await vscode.commands.executeCommand("workbench.action.maximizeAuxiliaryBar")
-          } else {
-            await vscode.commands.executeCommand(`${KiloProvider.viewType}.focus`)
-            for (let i = 0; i < 20; i++) {
-              await vscode.commands.executeCommand("workbench.action.increaseViewSize")
-            }
+          await vscode.commands.executeCommand("workbench.action.maximizeAuxiliaryBar")
+          for (let i = 0; i < 20; i++) {
+            await vscode.commands.executeCommand("workbench.action.increaseViewSize")
           }
         }
         maximized = !maximized
