@@ -1085,6 +1085,13 @@ export const dict = {
   "settings.agentBehaviour.createMode.nameRequired": "Name ist erforderlich",
   "settings.agentBehaviour.createMode.nameInvalid": "Name darf nur Kleinbuchstaben, Zahlen und Bindestriche enthalten",
   "settings.agentBehaviour.createMode.nameTaken": "Ein Modus mit diesem Namen existiert bereits",
+  "settings.agentBehaviour.importMode": "Importieren",
+  "settings.agentBehaviour.importMode.invalidName":
+    "Ungültiger Modusname in der Datei. Der Name muss mit einem Kleinbuchstaben beginnen und darf nur Kleinbuchstaben, Zahlen und Bindestriche enthalten.",
+  "settings.agentBehaviour.importMode.nameTaken": "Ein Modus mit diesem Namen existiert bereits.",
+  "settings.agentBehaviour.importMode.invalidJson":
+    "Ungültige JSON-Datei. Bitte wählen Sie eine gültige Agenten-Definitionsdatei aus.",
+  "settings.agentBehaviour.exportMode": "Agenten-Definition exportieren",
   "settings.agentBehaviour.editMode": "Modus bearbeiten",
   "settings.agentBehaviour.editMode.description": "Beschreibung",
   "settings.agentBehaviour.editMode.prompt": "System-Prompt",

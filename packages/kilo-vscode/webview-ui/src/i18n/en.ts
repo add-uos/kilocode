@@ -1098,6 +1098,12 @@ export const dict = {
   "settings.agentBehaviour.createMode.nameInvalid":
     "Name must start with a lowercase letter and contain only lowercase letters, numbers, and hyphens",
   "settings.agentBehaviour.createMode.nameTaken": "A mode with this name already exists",
+  "settings.agentBehaviour.importMode": "Import",
+  "settings.agentBehaviour.importMode.invalidName":
+    "Invalid mode name in file. Name must start with a lowercase letter and contain only lowercase letters, numbers, and hyphens.",
+  "settings.agentBehaviour.importMode.nameTaken": "A mode with this name already exists.",
+  "settings.agentBehaviour.importMode.invalidJson": "Invalid JSON file. Please select a valid agent definition file.",
+  "settings.agentBehaviour.exportMode": "Export agent definition",
   "settings.agentBehaviour.editMode": "Edit Mode",
   "settings.agentBehaviour.editMode.description": "Description",
   "settings.agentBehaviour.editMode.prompt": "System Prompt",

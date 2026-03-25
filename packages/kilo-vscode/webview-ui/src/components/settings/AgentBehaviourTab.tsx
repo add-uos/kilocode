@@ -10,7 +10,7 @@ import { useDialog } from "@kilocode/kilo-ui/context/dialog"
 import { useConfig } from "../../context/config"
 import { useSession } from "../../context/session"
 import { useLanguage } from "../../context/language"
-import type { AgentInfo, SkillInfo } from "../../types/messages"
+import type { AgentConfig, AgentInfo, SkillInfo } from "../../types/messages"
 import ModeEditView from "./ModeEditView"
 import ModeCreateView from "./ModeCreateView"
 
@@ -226,6 +226,54 @@ const AgentBehaviourTab: Component = () => {
     setEditingAgent("")
   }
 
+  const [importError, setImportError] = createSignal("")
+
+  const importMode = (file: File) => {
+    setImportError("")
+    const reader = new FileReader()
+    reader.onload = () => {
+      try {
+        const data = JSON.parse(reader.result as string)
+        const name = typeof data.name === "string" ? data.name.trim() : ""
+        if (!name || !/^[a-z][a-z0-9-]*$/.test(name)) {
+          setImportError(language.t("settings.agentBehaviour.importMode.invalidName"))
+          return
+        }
+        if (agentNames().includes(name)) {
+          setImportError(language.t("settings.agentBehaviour.importMode.nameTaken"))
+          return
+        }
+        const partial: Partial<AgentConfig> = {}
+        if (typeof data.description === "string") partial.description = data.description
+        if (typeof data.prompt === "string") partial.prompt = data.prompt
+        if (typeof data.model === "string") partial.model = data.model
+        if (typeof data.mode === "string") partial.mode = data.mode as AgentConfig["mode"]
+        if (typeof data.temperature === "number") partial.temperature = data.temperature
+        if (typeof data.top_p === "number") partial.top_p = data.top_p
+        if (typeof data.steps === "number") partial.steps = data.steps
+        const existing = config().agent ?? {}
+        updateConfig({
+          agent: { ...existing, [name]: { ...partial, mode: partial.mode ?? "primary" } },
+        })
+        setImportError("")
+      } catch {
+        setImportError(language.t("settings.agentBehaviour.importMode.invalidJson"))
+      }
+    }
+    reader.readAsText(file)
+  }
+
+  const triggerImport = () => {
+    const input = document.createElement("input")
+    input.type = "file"
+    input.accept = ".json"
+    input.onchange = () => {
+      const file = input.files?.[0]
+      if (file) importMode(file)
+    }
+    input.click()
+  }
+
   const renderAgentsSubtab = () => {
     const view = agentView()
     if (view === "create") return <ModeCreateView taken={agentNames()} onBack={back} />
@@ -269,10 +317,27 @@ const AgentBehaviourTab: Component = () => {
           }}
         >
           <div data-slot="settings-row-label-title">{language.t("settings.agentBehaviour.availableAgents")}</div>
-          <Button variant="secondary" size="small" onClick={() => setAgentView("create")}>
-            {language.t("settings.agentBehaviour.createMode")}
-          </Button>
+          <div style={{ display: "flex", gap: "8px" }}>
+            <Button variant="ghost" size="small" onClick={triggerImport}>
+              {language.t("settings.agentBehaviour.importMode")}
+            </Button>
+            <Button variant="secondary" size="small" onClick={() => setAgentView("create")}>
+              {language.t("settings.agentBehaviour.createMode")}
+            </Button>
+          </div>
         </div>
+
+        <Show when={importError()}>
+          <div
+            style={{
+              "font-size": "12px",
+              color: "var(--vscode-errorForeground)",
+              "margin-bottom": "8px",
+            }}
+          >
+            {importError()}
+          </div>
+        </Show>
 
         {/* Agents list - clickable to edit */}
         <Show

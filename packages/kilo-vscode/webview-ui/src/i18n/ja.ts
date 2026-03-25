@@ -1067,6 +1067,13 @@ export const dict = {
   "settings.agentBehaviour.createMode.nameRequired": "名前は必須です",
   "settings.agentBehaviour.createMode.nameInvalid": "名前には小文字、数字、ハイフンのみ使用できます",
   "settings.agentBehaviour.createMode.nameTaken": "この名前のモードはすでに存在します",
+  "settings.agentBehaviour.importMode": "インポート",
+  "settings.agentBehaviour.importMode.invalidName":
+    "ファイル内のモード名が無効です。名前は小文字で始まり、小文字、数字、ハイフンのみを含む必要があります。",
+  "settings.agentBehaviour.importMode.nameTaken": "この名前のモードはすでに存在します。",
+  "settings.agentBehaviour.importMode.invalidJson":
+    "無効なJSONファイルです。有効なエージェント定義ファイルを選択してください。",
+  "settings.agentBehaviour.exportMode": "エージェント定義をエクスポート",
   "settings.agentBehaviour.editMode": "モードを編集",
   "settings.agentBehaviour.editMode.description": "説明",
   "settings.agentBehaviour.editMode.prompt": "システムプロンプト",

@@ -1076,6 +1076,13 @@ export const dict = {
   "settings.agentBehaviour.createMode.nameInvalid":
     "El nombre solo puede contener letras minúsculas, números y guiones",
   "settings.agentBehaviour.createMode.nameTaken": "Ya existe un modo con este nombre",
+  "settings.agentBehaviour.importMode": "Importar",
+  "settings.agentBehaviour.importMode.invalidName":
+    "Nombre de modo no válido en el archivo. El nombre debe comenzar con una letra minúscula y contener solo letras minúsculas, números y guiones.",
+  "settings.agentBehaviour.importMode.nameTaken": "Ya existe un modo con este nombre.",
+  "settings.agentBehaviour.importMode.invalidJson":
+    "Archivo JSON no válido. Por favor, seleccione un archivo de definición de agente válido.",
+  "settings.agentBehaviour.exportMode": "Exportar definición del agente",
   "settings.agentBehaviour.editMode": "Editar modo",
   "settings.agentBehaviour.editMode.description": "Descripción",
   "settings.agentBehaviour.editMode.prompt": "Prompt del sistema",

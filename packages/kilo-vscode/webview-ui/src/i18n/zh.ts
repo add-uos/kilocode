@@ -1050,6 +1050,12 @@ export const dict = {
   "settings.agentBehaviour.createMode.nameRequired": "名称为必填项",
   "settings.agentBehaviour.createMode.nameInvalid": "名称只能包含小写字母、数字和连字符",
   "settings.agentBehaviour.createMode.nameTaken": "此名称的模式已存在",
+  "settings.agentBehaviour.importMode": "导入",
+  "settings.agentBehaviour.importMode.invalidName":
+    "文件中的模式名称无效。名称必须以小写字母开头，且仅包含小写字母、数字和连字符。",
+  "settings.agentBehaviour.importMode.nameTaken": "此名称的模式已存在。",
+  "settings.agentBehaviour.importMode.invalidJson": "无效的 JSON 文件。请选择有效的代理定义文件。",
+  "settings.agentBehaviour.exportMode": "导出代理定义",
   "settings.agentBehaviour.editMode": "编辑模式",
   "settings.agentBehaviour.editMode.description": "描述",
   "settings.agentBehaviour.editMode.prompt": "系统提示",

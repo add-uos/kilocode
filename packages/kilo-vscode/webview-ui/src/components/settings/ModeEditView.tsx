@@ -40,6 +40,18 @@ const ModeEditView: Component<Props> = (props) => {
     })
   }
 
+  const exportMode = () => {
+    const data = { name: props.name, ...cfg() }
+    const json = JSON.stringify(data, null, 2)
+    const blob = new Blob([json], { type: "application/json" })
+    const url = URL.createObjectURL(blob)
+    const anchor = document.createElement("a")
+    anchor.href = url
+    anchor.download = `${props.name}.agent.json`
+    anchor.click()
+    URL.revokeObjectURL(url)
+  }
+
   return (
     <div>
       <div
@@ -56,17 +68,26 @@ const ModeEditView: Component<Props> = (props) => {
             {language.t("settings.agentBehaviour.editMode")} — {props.name}
           </span>
         </div>
-        <Show when={!native()}>
+        <div style={{ display: "flex", gap: "4px" }}>
           <IconButton
             size="small"
             variant="ghost"
-            icon="close"
-            onClick={() => {
-              const a = agent()
-              if (a) props.onRemove(a)
-            }}
+            icon="download"
+            title={language.t("settings.agentBehaviour.exportMode")}
+            onClick={exportMode}
           />
-        </Show>
+          <Show when={!native()}>
+            <IconButton
+              size="small"
+              variant="ghost"
+              icon="close"
+              onClick={() => {
+                const a = agent()
+                if (a) props.onRemove(a)
+              }}
+            />
+          </Show>
+        </div>
       </div>
 
       <Show when={native()}>

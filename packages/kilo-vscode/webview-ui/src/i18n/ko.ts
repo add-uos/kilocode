@@ -1063,6 +1063,12 @@ export const dict = {
   "settings.agentBehaviour.createMode.nameRequired": "이름은 필수입니다",
   "settings.agentBehaviour.createMode.nameInvalid": "이름에는 소문자, 숫자, 하이픈만 포함될 수 있습니다",
   "settings.agentBehaviour.createMode.nameTaken": "이 이름의 모드가 이미 존재합니다",
+  "settings.agentBehaviour.importMode": "가져오기",
+  "settings.agentBehaviour.importMode.invalidName":
+    "파일의 모드 이름이 잘못되었습니다. 이름은 소문자로 시작하고 소문자, 숫자, 하이픈만 포함해야 합니다.",
+  "settings.agentBehaviour.importMode.nameTaken": "이 이름의 모드가 이미 존재합니다.",
+  "settings.agentBehaviour.importMode.invalidJson": "잘못된 JSON 파일입니다. 유효한 에이전트 정의 파일을 선택하세요.",
+  "settings.agentBehaviour.exportMode": "에이전트 정의 내보내기",
   "settings.agentBehaviour.editMode": "모드 편집",
   "settings.agentBehaviour.editMode.description": "설명",
   "settings.agentBehaviour.editMode.prompt": "시스템 프롬프트",

@@ -1071,6 +1071,13 @@ export const dict = {
   "settings.agentBehaviour.createMode.nameRequired": "Nazwa jest wymagana",
   "settings.agentBehaviour.createMode.nameInvalid": "Nazwa może zawierać tylko małe litery, cyfry i myślniki",
   "settings.agentBehaviour.createMode.nameTaken": "Tryb o tej nazwie już istnieje",
+  "settings.agentBehaviour.importMode": "Importuj",
+  "settings.agentBehaviour.importMode.invalidName":
+    "Nieprawidłowa nazwa trybu w pliku. Nazwa musi zaczynać się od małej litery i zawierać tylko małe litery, cyfry i myślniki.",
+  "settings.agentBehaviour.importMode.nameTaken": "Tryb o tej nazwie już istnieje.",
+  "settings.agentBehaviour.importMode.invalidJson":
+    "Nieprawidłowy plik JSON. Proszę wybrać prawidłowy plik definicji agenta.",
+  "settings.agentBehaviour.exportMode": "Eksportuj definicję agenta",
   "settings.agentBehaviour.editMode": "Edytuj tryb",
   "settings.agentBehaviour.editMode.description": "Opis",
   "settings.agentBehaviour.editMode.prompt": "Prompt systemowy",

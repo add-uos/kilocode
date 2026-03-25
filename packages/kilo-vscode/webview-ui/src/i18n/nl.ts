@@ -1060,6 +1060,13 @@ export const dict = {
     "Geen skills ontdekt. Voeg hieronder skill mappaden of URL's toe om skills beschikbaar te maken.",
   "settings.agentBehaviour.availableModes": "Beschikbare Aangepaste Modi",
   "settings.agentBehaviour.noModesFound": "Geen modi gevonden.",
+  "settings.agentBehaviour.importMode": "Importeren",
+  "settings.agentBehaviour.importMode.invalidName":
+    "Ongeldige modusnaam in bestand. De naam moet beginnen met een kleine letter en mag alleen kleine letters, cijfers en streepjes bevatten.",
+  "settings.agentBehaviour.importMode.nameTaken": "Er bestaat al een modus met deze naam.",
+  "settings.agentBehaviour.importMode.invalidJson":
+    "Ongeldig JSON-bestand. Selecteer een geldig agentdefinitiebestand.",
+  "settings.agentBehaviour.exportMode": "Agentdefinitie exporteren",
   "settings.agentBehaviour.removeMode.title": "Verwijder modus",
   "settings.agentBehaviour.removeMode.confirm":
     'Modus "{{name}}" verwijderen? Dit zal de modus uitschakelen door je configuratie bij te werken.',

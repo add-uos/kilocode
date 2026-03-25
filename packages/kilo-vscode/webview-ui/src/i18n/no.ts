@@ -1070,6 +1070,12 @@ export const dict = {
   "settings.agentBehaviour.createMode.nameRequired": "Navn er påkrevd",
   "settings.agentBehaviour.createMode.nameInvalid": "Navn kan bare inneholde små bokstaver, tall og bindestreker",
   "settings.agentBehaviour.createMode.nameTaken": "En modus med dette navnet eksisterer allerede",
+  "settings.agentBehaviour.importMode": "Importer",
+  "settings.agentBehaviour.importMode.invalidName":
+    "Ugyldig modusnavn i filen. Navnet må starte med en liten bokstav og bare inneholde små bokstaver, tall og bindestreker.",
+  "settings.agentBehaviour.importMode.nameTaken": "En modus med dette navnet eksisterer allerede.",
+  "settings.agentBehaviour.importMode.invalidJson": "Ugyldig JSON-fil. Vennligst velg en gyldig agentdefinisjonsfil.",
+  "settings.agentBehaviour.exportMode": "Eksporter agentdefinisjon",
   "settings.agentBehaviour.editMode": "Rediger modus",
   "settings.agentBehaviour.editMode.description": "Beskrivelse",
   "settings.agentBehaviour.editMode.prompt": "Systemprompt",

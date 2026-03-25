@@ -1072,6 +1072,13 @@ export const dict = {
   "settings.agentBehaviour.createMode.nameRequired": "Naziv je obavezan",
   "settings.agentBehaviour.createMode.nameInvalid": "Naziv smije sadržavati samo mala slova, brojeve i crtice",
   "settings.agentBehaviour.createMode.nameTaken": "Mod s ovim nazivom već postoji",
+  "settings.agentBehaviour.importMode": "Uvezi",
+  "settings.agentBehaviour.importMode.invalidName":
+    "Nevažeći naziv moda u datoteci. Naziv mora počinjati malim slovom i sadržavati samo mala slova, brojeve i crtice.",
+  "settings.agentBehaviour.importMode.nameTaken": "Mod s ovim nazivom već postoji.",
+  "settings.agentBehaviour.importMode.invalidJson":
+    "Nevažeća JSON datoteka. Molimo odaberite važeću datoteku definicije agenta.",
+  "settings.agentBehaviour.exportMode": "Izvezi definiciju agenta",
   "settings.agentBehaviour.editMode": "Uredi mod",
   "settings.agentBehaviour.editMode.description": "Opis",
   "settings.agentBehaviour.editMode.prompt": "Sistemski prompt",

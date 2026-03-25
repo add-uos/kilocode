@@ -1059,6 +1059,13 @@ export const dict = {
     "Keşfedilen beceri yok. Becerileri kullanılabilir kılmak için aşağıya beceri klasör yolları veya URL'ler ekleyin.",
   "settings.agentBehaviour.availableModes": "Mevcut Özel Modlar",
   "settings.agentBehaviour.noModesFound": "Mod bulunamadı.",
+  "settings.agentBehaviour.importMode": "İçe Aktar",
+  "settings.agentBehaviour.importMode.invalidName":
+    "Dosyadaki mod adı geçersiz. Ad küçük harfle başlamalı ve yalnızca küçük harfler, rakamlar ve tire içermelidir.",
+  "settings.agentBehaviour.importMode.nameTaken": "Bu ada sahip bir mod zaten mevcut.",
+  "settings.agentBehaviour.importMode.invalidJson":
+    "Geçersiz JSON dosyası. Lütfen geçerli bir ajan tanım dosyası seçin.",
+  "settings.agentBehaviour.exportMode": "Ajan tanımını dışa aktar",
   "settings.agentBehaviour.removeMode.title": "Modu kaldır",
   "settings.agentBehaviour.removeMode.confirm":
     '"{{name}}" modu kaldırılsın mı? Bu, yapılandırmanızı güncelleyerek modu devre dışı bırakacak.',

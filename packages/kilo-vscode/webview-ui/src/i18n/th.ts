@@ -1059,6 +1059,12 @@ export const dict = {
   "settings.agentBehaviour.createMode.nameRequired": "ต้องระบุชื่อ",
   "settings.agentBehaviour.createMode.nameInvalid": "ชื่อต้องประกอบด้วยตัวอักษรพิมพ์เล็ก ตัวเลข และขีดกลางเท่านั้น",
   "settings.agentBehaviour.createMode.nameTaken": "มีโหมดที่มีชื่อนี้อยู่แล้ว",
+  "settings.agentBehaviour.importMode": "นำเข้า",
+  "settings.agentBehaviour.importMode.invalidName":
+    "ชื่อโหมดในไฟล์ไม่ถูกต้อง ชื่อต้องขึ้นต้นด้วยตัวอักษรพิมพ์เล็กและประกอบด้วยตัวอักษรพิมพ์เล็ก ตัวเลข และขีดกลางเท่านั้น",
+  "settings.agentBehaviour.importMode.nameTaken": "มีโหมดที่มีชื่อนี้อยู่แล้ว",
+  "settings.agentBehaviour.importMode.invalidJson": "ไฟล์ JSON ไม่ถูกต้อง กรุณาเลือกไฟล์นิยามเอเจนต์ที่ถูกต้อง",
+  "settings.agentBehaviour.exportMode": "ส่งออกนิยามเอเจนต์",
   "settings.agentBehaviour.editMode": "แก้ไขโหมด",
   "settings.agentBehaviour.editMode.description": "คำอธิบาย",
   "settings.agentBehaviour.editMode.prompt": "System Prompt",

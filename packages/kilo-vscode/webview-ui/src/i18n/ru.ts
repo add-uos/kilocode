@@ -1074,6 +1074,13 @@ export const dict = {
   "settings.agentBehaviour.createMode.nameRequired": "Название обязательно",
   "settings.agentBehaviour.createMode.nameInvalid": "Название может содержать только строчные буквы, цифры и дефисы",
   "settings.agentBehaviour.createMode.nameTaken": "Режим с таким названием уже существует",
+  "settings.agentBehaviour.importMode": "Импорт",
+  "settings.agentBehaviour.importMode.invalidName":
+    "Недопустимое имя режима в файле. Имя должно начинаться со строчной буквы и содержать только строчные буквы, цифры и дефисы.",
+  "settings.agentBehaviour.importMode.nameTaken": "Режим с таким названием уже существует.",
+  "settings.agentBehaviour.importMode.invalidJson":
+    "Недопустимый файл JSON. Пожалуйста, выберите корректный файл определения агента.",
+  "settings.agentBehaviour.exportMode": "Экспортировать определение агента",
   "settings.agentBehaviour.editMode": "Редактировать режим",
   "settings.agentBehaviour.editMode.description": "Описание",
   "settings.agentBehaviour.editMode.prompt": "Системный промпт",
