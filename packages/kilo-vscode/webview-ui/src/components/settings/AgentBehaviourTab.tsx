@@ -247,7 +247,8 @@ const AgentBehaviourTab: Component = () => {
         if (typeof data.description === "string") partial.description = data.description
         if (typeof data.prompt === "string") partial.prompt = data.prompt
         if (typeof data.model === "string") partial.model = data.model
-        if (typeof data.mode === "string") partial.mode = data.mode as AgentConfig["mode"]
+        const modes = ["subagent", "primary", "all"] as const
+        if (typeof data.mode === "string" && modes.includes(data.mode)) partial.mode = data.mode
         if (typeof data.temperature === "number") partial.temperature = data.temperature
         if (typeof data.top_p === "number") partial.top_p = data.top_p
         if (typeof data.steps === "number") partial.steps = data.steps

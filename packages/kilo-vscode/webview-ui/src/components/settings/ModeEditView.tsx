@@ -68,15 +68,15 @@ const ModeEditView: Component<Props> = (props) => {
             {language.t("settings.agentBehaviour.editMode")} — {props.name}
           </span>
         </div>
-        <div style={{ display: "flex", gap: "4px" }}>
-          <IconButton
-            size="small"
-            variant="ghost"
-            icon="download"
-            title={language.t("settings.agentBehaviour.exportMode")}
-            onClick={exportMode}
-          />
-          <Show when={!native()}>
+        <Show when={!native()}>
+          <div style={{ display: "flex", gap: "4px" }}>
+            <IconButton
+              size="small"
+              variant="ghost"
+              icon="download"
+              title={language.t("settings.agentBehaviour.exportMode")}
+              onClick={exportMode}
+            />
             <IconButton
               size="small"
               variant="ghost"
@@ -86,8 +86,8 @@ const ModeEditView: Component<Props> = (props) => {
                 if (a) props.onRemove(a)
               }}
             />
-          </Show>
-        </div>
+          </div>
+        </Show>
       </div>
 
       <Show when={native()}>
