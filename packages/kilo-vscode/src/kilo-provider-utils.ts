@@ -167,6 +167,22 @@ export function buildSettingPath(key: string): { section: string; leaf: string }
   return { section, leaf }
 }
 
+export function resolveWorkspaceDirectory(input: {
+  sessionID?: string
+  currentSessionID?: string
+  contextSessionID?: string
+  sessionDirectories: Map<string, string>
+  workspaceDirectory: string
+}) {
+  const target = input.sessionID ?? input.currentSessionID ?? input.contextSessionID
+  if (!target) return input.workspaceDirectory
+
+  const dir = input.sessionDirectories.get(target)
+  if (dir) return dir
+
+  return input.workspaceDirectory
+}
+
 export type WebviewMessage =
   | {
       type: "partUpdated"
