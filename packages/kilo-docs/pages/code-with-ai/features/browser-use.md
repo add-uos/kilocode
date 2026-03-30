@@ -21,7 +21,20 @@ Browser automation is built into the extension and requires no manual setup. Ena
 {% /tab %}
 {% tab label="CLI" %}
 
-Browser automation is built into Kilo and requires no manual setup. Enable it from **Settings → Browser** and Kilo handles the rest automatically.
+Kilo Code uses [Playwright](https://playwright.dev/) for browser automation. Add it to your `kilo.jsonc` configuration:
+
+```json
+{
+  "mcp": {
+    "playwright": {
+      "type": "local",
+      "command": ["npx", "-y", "@playwright/mcp@latest"]
+    }
+  }
+}
+```
+
+Playwright downloads Chromium automatically on first use.
 
 {% /tab %}
 {% tab label="VSCode (Legacy)" %}
@@ -119,16 +132,12 @@ Browser automation settings are available under **Settings → Browser**:
 
 - **Enable browser automation**: Toggle to enable or disable browser automation
 - **Headless mode**: Run the browser without a visible window (default: disabled)
-- **Use system Chrome**: Use your installed Chrome instead of the bundled browser
+- **Use system Chrome**: Enabled by default — uses your installed Chrome. Disable to have Playwright download and use Chromium instead.
 
 {% /tab %}
 {% tab label="CLI" %}
 
-Browser automation settings are available under **Settings → Browser**:
-
-- **Enable browser automation**: Toggle to enable or disable browser automation
-- **Headless mode**: Run the browser without a visible window (default: disabled)
-- **Use system Chrome**: Use your installed Chrome instead of the bundled browser
+Browser automation is configured in your `kilo.jsonc` file. No additional settings are required — Playwright manages the browser lifecycle automatically.
 
 {% /tab %}
 {% tab label="VSCode (Legacy)" %}
