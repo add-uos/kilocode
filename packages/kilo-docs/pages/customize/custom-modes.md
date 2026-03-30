@@ -133,15 +133,20 @@ You can also install community-contributed agents from the **Marketplace** tab i
 
 ### Ask Kilo! (Recommended)
 
+You can also have Kilo create an agent file for you. For example:
+
+```
+Create a new agent called "Documentation Writer". It should only be able to read files and write Markdown files.
+```
+
+Kilo will create the appropriate `.kilo/agents/docs-writer.md` file with the right frontmatter.
+
 {% /tab %}
 {% tab label="VSCode (Legacy)" %}
 
 You can create and configure custom modes in several ways:
 
 ### 1. Ask Kilo! (Recommended)
-
-{% /tab %}
-{% /tabs %}
 
 You can quickly create a basic custom mode by asking Kilo Code to do it for you. For example:
 
@@ -167,24 +172,13 @@ _The custom mode creation interface showing fields for name, slug, description, 
 
 The interface provides fields for Name, Slug, Description, Save Location, Role Definition, When to Use (optional), Available Tools, and Custom Instructions. After filling these, click the "Create Mode" button. Kilo Code will save the new mode in YAML format.
 
-### 3. Manual Configuration
-
-{% tabs %}
-{% tab label="VSCode" %}
-
-Create or edit agent Markdown files directly in `.kilo/agents/` (project) or `~/.config/kilo/agents/` (global). See the file format above.
-
-{% /tab %}
-{% tab label="VSCode (Legacy)" %}
+### 3. Manual Configuration (YAML & JSON)
 
 You can directly edit the configuration files to create or modify custom modes. This method offers the most control over all properties. Kilo Code now supports both YAML (preferred) and JSON formats.
 
 - **Global Modes:** Edit `custom_modes.yaml` (primary). `custom_modes.json` is a legacy fallback and may still exist in older setups.
 - **Project Modes:** Edit `.kilocodemodes` in your project root (YAML preferred; JSON still supported for compatibility).
 - **Open from UI:** Open the Modes area, click <Codicon name="gear" /> next to Global or Project Modes, then choose **Edit Global Modes** or **Edit Project Modes**.
-
-{% /tab %}
-{% /tabs %}
 
 These files define an array/list of custom modes.
 
@@ -574,6 +568,9 @@ customModes:
 - **Colons for Key-Value Pairs:** Keys must be followed by a colon and a space (e.g., `slug: my-mode`)
 - **Hyphens for List Items:** List items start with a hyphen and a space (e.g., `- read`)
 - **Validate Your YAML:** Use online YAML validators or your editor's built-in validation
+
+{% /tab %}
+{% /tabs %}
 
 ## Community Gallery
 
