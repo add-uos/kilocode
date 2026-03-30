@@ -5,7 +5,11 @@ description: "Create and configure custom modes in Kilo Code"
 
 # Custom Modes
 
-Kilo Code allows you to create **custom modes** to tailor Kilo's behavior to specific tasks or workflows. Custom modes can be either **global** (available across all projects) or **project-specific** (defined within a single project).
+Kilo Code allows you to create **custom modes** (also called **agents**) to tailor Kilo's behavior to specific tasks or workflows. Custom modes can be either **global** (available across all projects) or **project-specific** (defined within a single project).
+
+{% callout type="info" %}
+The current VS Code extension (built on the Kilo CLI) uses **agent Markdown files** to define custom modes. The legacy extension used `custom_modes.yaml` / `.kilocodemodes`. See the tabs below for the relevant approach.
+{% /callout %}
 
 ## Sticky Models for Efficient Workflow
 
@@ -89,9 +93,55 @@ When importing modes, you can change the slug in the exported YAML file before i
 
 ## Methods for Creating and Configuring Custom Modes
 
+{% tabs %}
+{% tab label="VSCode" %}
+
+Custom agents are defined as Markdown files with optional YAML frontmatter. You can place them in:
+
+- **Project agents:** `.kilo/agents/*.md` (or `.opencode/agents/*.md`)
+- **Global agents:** `~/.config/kilo/agents/*.md`
+
+### Agent File Format
+
+```markdown
+---
+model: anthropic/claude-3-5-sonnet-20241022
+description: A specialized agent for writing documentation
+mode: primary
+---
+
+You are a technical writer specializing in clear, concise documentation.
+Focus on clarity, completeness, and consistent formatting.
+```
+
+**YAML frontmatter fields:**
+
+| Field         | Description                                                                   |
+| ------------- | ----------------------------------------------------------------------------- |
+| `model`       | Override the default model for this agent                                     |
+| `description` | Short description shown in the agent selector                                 |
+| `mode`        | `"primary"` (user-selectable), `"subagent"` (invoked by AI only), or `"all"`  |
+| `permission`  | Tool permission overrides (same format as the global `permission` config key) |
+| `temperature` | Model temperature override                                                    |
+| `top_p`       | Model top_p override                                                          |
+
+The filename (without `.md`) becomes the agent's slug and display name.
+
+### Installing via Marketplace
+
+You can also install community-contributed agents from the **Marketplace** tab in the extension sidebar.
+
+### Ask Kilo! (Recommended)
+
+{% /tab %}
+{% tab label="VSCode (Legacy)" %}
+
 You can create and configure custom modes in several ways:
 
 ### 1. Ask Kilo! (Recommended)
+
+{% /tab %}
+{% /tabs %}
 
 You can quickly create a basic custom mode by asking Kilo Code to do it for you. For example:
 
@@ -117,13 +167,24 @@ _The custom mode creation interface showing fields for name, slug, description, 
 
 The interface provides fields for Name, Slug, Description, Save Location, Role Definition, When to Use (optional), Available Tools, and Custom Instructions. After filling these, click the "Create Mode" button. Kilo Code will save the new mode in YAML format.
 
-### 3. Manual Configuration (YAML & JSON)
+### 3. Manual Configuration
+
+{% tabs %}
+{% tab label="VSCode" %}
+
+Create or edit agent Markdown files directly in `.kilo/agents/` (project) or `~/.config/kilo/agents/` (global). See the file format above.
+
+{% /tab %}
+{% tab label="VSCode (Legacy)" %}
 
 You can directly edit the configuration files to create or modify custom modes. This method offers the most control over all properties. Kilo Code now supports both YAML (preferred) and JSON formats.
 
 - **Global Modes:** Edit `custom_modes.yaml` (primary). `custom_modes.json` is a legacy fallback and may still exist in older setups.
 - **Project Modes:** Edit `.kilocodemodes` in your project root (YAML preferred; JSON still supported for compatibility).
 - **Open from UI:** Open the Modes area, click <Codicon name="gear" /> next to Global or Project Modes, then choose **Edit Global Modes** or **Edit Project Modes**.
+
+{% /tab %}
+{% /tabs %}
 
 These files define an array/list of custom modes.
 
