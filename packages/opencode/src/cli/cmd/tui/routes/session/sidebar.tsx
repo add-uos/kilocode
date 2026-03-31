@@ -41,18 +41,7 @@ export function Sidebar(props: { sessionID: string; overlay?: boolean }) {
   )
 
   const cost = createMemo(() => {
-    // kilocode_change start - include subagent session costs in total
-    const total =
-      messages().reduce((sum, x) => sum + (x.role === "assistant" ? x.cost : 0), 0) +
-      sync.data.session
-        .filter((s) => s.parentID === props.sessionID)
-        .reduce(
-          (acc, child) =>
-            acc +
-            (sync.data.message[child.id] ?? []).reduce((sum, x) => sum + (x.role === "assistant" ? x.cost : 0), 0),
-          0,
-        )
-    // kilocode_change end
+    const total = messages().reduce((sum, x) => sum + (x.role === "assistant" ? x.cost : 0), 0)
     return new Intl.NumberFormat("en-US", {
       style: "currency",
       currency: "USD",

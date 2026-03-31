@@ -47,10 +47,8 @@ const lastAssistantWithTokens = (messages: Message[]) => {
   }
 }
 
-// kilocode_change start - accept optional child cost to include subagent costs
-const build = (messages: Message[] = [], providers: Provider[] = [], childCost = 0): Metrics => {
-  const totalCost = messages.reduce((sum, msg) => sum + (msg.role === "assistant" ? msg.cost : 0), 0) + childCost
-  // kilocode_change end
+const build = (messages: Message[] = [], providers: Provider[] = []): Metrics => {
+  const totalCost = messages.reduce((sum, msg) => sum + (msg.role === "assistant" ? msg.cost : 0), 0)
   const message = lastAssistantWithTokens(messages)
   if (!message) return { totalCost, context: undefined }
 
@@ -79,8 +77,6 @@ const build = (messages: Message[] = [], providers: Provider[] = [], childCost =
   }
 }
 
-// kilocode_change start - accept optional child cost to include subagent costs
-export function getSessionContextMetrics(messages: Message[] = [], providers: Provider[] = [], childCost = 0) {
-  return build(messages, providers, childCost)
+export function getSessionContextMetrics(messages: Message[] = [], providers: Provider[] = []) {
+  return build(messages, providers)
 }
-// kilocode_change end

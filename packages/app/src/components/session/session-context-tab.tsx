@@ -134,20 +134,7 @@ export function SessionContextTab() {
       }),
   )
 
-  // kilocode_change start - include subagent session costs in total
-  const childCost = createMemo(() => {
-    const id = params.id
-    if (!id) return 0
-    return sync.data.session
-      .filter((s) => s.parentID === id)
-      .reduce(
-        (acc, child) =>
-          acc + (sync.data.message[child.id] ?? []).reduce((sum, m) => sum + (m.role === "assistant" ? m.cost : 0), 0),
-        0,
-      )
-  })
-  // kilocode_change end
-  const metrics = createMemo(() => getSessionContextMetrics(messages(), sync.data.provider.all, childCost()))
+  const metrics = createMemo(() => getSessionContextMetrics(messages(), sync.data.provider.all))
   const ctx = createMemo(() => metrics().context)
   const formatter = createMemo(() => createSessionContextFormatter(language.intl()))
 

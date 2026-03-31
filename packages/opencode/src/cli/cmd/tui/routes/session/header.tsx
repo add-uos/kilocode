@@ -48,25 +48,10 @@ export function Header() {
   const messages = createMemo(() => sync.data.message[route.sessionID] ?? [])
 
   const cost = createMemo(() => {
-    // kilocode_change start - include subagent session costs in total
-    const sid = route.sessionID
-    const total =
-      pipe(
-        messages(),
-        sumBy((x) => (x.role === "assistant" ? x.cost : 0)),
-      ) +
-      sync.data.session
-        .filter((s) => s.parentID === sid)
-        .reduce(
-          (acc, child) =>
-            acc +
-            pipe(
-              sync.data.message[child.id] ?? [],
-              sumBy((x) => (x.role === "assistant" ? x.cost : 0)),
-            ),
-          0,
-        )
-    // kilocode_change end
+    const total = pipe(
+      messages(),
+      sumBy((x) => (x.role === "assistant" ? x.cost : 0)),
+    )
     return new Intl.NumberFormat("en-US", {
       style: "currency",
       currency: "USD",
