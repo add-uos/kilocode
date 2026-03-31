@@ -6,7 +6,8 @@
  *   2. Migrate     — grouped selection, live in-place progress, cleanup
  */
 
-import { Component, Show, createSignal, onMount, onCleanup, JSX } from "solid-js"
+import { Show, createSignal, onMount, onCleanup } from "solid-js"
+import type { Component, JSX } from "solid-js"
 import { useVSCode } from "../../context/vscode"
 import { useLanguage } from "../../context/language"
 import type {
@@ -182,6 +183,7 @@ const MigrationWizard: Component<MigrationWizardProps> = (props) => {
   const [providers, setProviders] = createSignal<MigrationProviderInfo[]>([])
   const [mcpServers, setMcpServers] = createSignal<MigrationMcpServerInfo[]>([])
   const [customModes, setCustomModes] = createSignal<MigrationCustomModeInfo[]>([])
+  const [sessions, setSessions] = createSignal<string[]>([])
   const [defaultModel, setDefaultModel] = createSignal<{ provider: string; model: string } | undefined>(undefined)
   const [legacySettings, setLegacySettings] = createSignal<LegacySettings | undefined>(undefined)
 
@@ -189,6 +191,7 @@ const MigrationWizard: Component<MigrationWizardProps> = (props) => {
   const [migrateProviders, setMigrateProviders] = createSignal(true)
   const [migrateMcpServers, setMigrateMcpServers] = createSignal(true)
   const [migrateModes, setMigrateModes] = createSignal(true)
+  const [migrateSessions, setMigrateSessions] = createSignal(true)
   const [migrateDefaultModel, setMigrateDefaultModel] = createSignal(true)
   const [migrateAutoApproval, setMigrateAutoApproval] = createSignal(true)
   const [migrateLanguage, setMigrateLanguage] = createSignal(true)
@@ -213,6 +216,7 @@ const MigrationWizard: Component<MigrationWizardProps> = (props) => {
         setProviders(data.providers)
         setMcpServers(data.mcpServers)
         setCustomModes(data.customModes)
+        setSessions(data.sessions ?? [])
         setDefaultModel(data.defaultModel)
         setLegacySettings(data.settings)
 
@@ -220,6 +224,7 @@ const MigrationWizard: Component<MigrationWizardProps> = (props) => {
         setMigrateProviders(data.providers.some((p) => p.supported && p.hasApiKey))
         setMigrateMcpServers(data.mcpServers.length > 0)
         setMigrateModes(data.customModes.length > 0)
+        setMigrateSessions((data.sessions?.length ?? 0) > 0)
         setMigrateDefaultModel(Boolean(data.defaultModel))
 
         const s = data.settings
@@ -318,6 +323,9 @@ const MigrationWizard: Component<MigrationWizardProps> = (props) => {
         const mode = customModes().find((m) => m.slug === slug)
         return { item: mode?.name ?? slug, group: "customModes", status: "pending" as const }
       }),
+      ...(migrateSessions() && sessions().length > 0
+        ? [{ item: "Chat sessions", group: "sessions", status: "pending" as const }]
+        : []),
       ...(migrateDefaultModel() && defaultModel()
         ? [{ item: "Default model", group: "defaultModel", status: "pending" as const }]
         : []),
@@ -356,6 +364,7 @@ const MigrationWizard: Component<MigrationWizardProps> = (props) => {
         providers: selectedProviderNames,
         mcpServers: selectedMcpNames,
         customModes: selectedModesSlugs,
+        sessions: migrateSessions() ? sessions() : [],
         defaultModel: migrateDefaultModel(),
         settings: {
           autoApproval,
@@ -398,11 +407,13 @@ const MigrationWizard: Component<MigrationWizardProps> = (props) => {
 
   const hasLanguageData = () => Boolean(legacySettings()?.language)
   const hasAutocompleteData = () => Boolean(legacySettings()?.autocomplete)
+  const hasSessions = () => sessions().length > 0
 
   const hasAnySelection = () =>
     (migrateProviders() && supportedProviderCount() > 0) ||
     (migrateMcpServers() && mcpServers().length > 0) ||
     (migrateModes() && customModes().length > 0) ||
+    (migrateSessions() && hasSessions()) ||
     (migrateDefaultModel() && Boolean(defaultModel())) ||
     (migrateAutoApproval() && hasAnyAutoApprovalData()) ||
     (migrateLanguage() && hasLanguageData()) ||
@@ -412,6 +423,7 @@ const MigrationWizard: Component<MigrationWizardProps> = (props) => {
     supportedProviderCount() === 0 &&
     mcpServers().length === 0 &&
     customModes().length === 0 &&
+    !hasSessions() &&
     !defaultModel() &&
     !hasAnyAutoApprovalData() &&
     !hasLanguageData() &&
@@ -477,10 +489,7 @@ const MigrationWizard: Component<MigrationWizardProps> = (props) => {
         <div class={screen() === "whats-new" ? "migration-wizard__screen--active" : "migration-wizard__screen--hidden"}>
           <div class="migration-wizard__header">
             <KiloLogo />
-            <h1>
-              {language.t("migration.whatsNew.title")}{" "}
-              <span class="migration-wizard__badge">{language.t("migration.whatsNew.badge")}</span>
-            </h1>
+            <h1>{language.t("migration.whatsNew.title")}</h1>
             <p>{language.t("migration.whatsNew.subtitle")}</p>
           </div>
 
@@ -653,6 +662,27 @@ const MigrationWizard: Component<MigrationWizardProps> = (props) => {
                 </div>
               </Show>
 
+              <Show when={hasSessions()}>
+                <div class="migration-wizard__item">
+                  <Show when={phase() === "selecting"} fallback={<StatusIcon group="sessions" />}>
+                    <label class="migration-wizard__checkbox">
+                      <input
+                        type="checkbox"
+                        checked={migrateSessions()}
+                        onChange={(e) => setMigrateSessions(e.currentTarget.checked)}
+                      />
+                      <span class="migration-wizard__checkmark">
+                        <CheckmarkSvg />
+                      </span>
+                    </label>
+                  </Show>
+                  <div class="migration-wizard__item-text">
+                    <div class="label">Chat Sessions &amp; History</div>
+                    <div class="desc">{sessions().length} sessions detected</div>
+                  </div>
+                </div>
+              </Show>
+
               {/* Default Model */}
               <Show when={Boolean(defaultModel())}>
                 <div class="migration-wizard__item">
@@ -736,20 +766,6 @@ const MigrationWizard: Component<MigrationWizardProps> = (props) => {
                   </div>
                 </div>
               </Show>
-
-              {/* Divider + Cannot be migrated */}
-              <div class="migration-wizard__divider" />
-              <div class="migration-wizard__section-label">{language.t("migration.migrate.cannotMigrate")}</div>
-              <div class="migration-wizard__item migration-wizard__item--disabled">
-                <label class="migration-wizard__checkbox">
-                  <input type="checkbox" disabled />
-                  <span class="migration-wizard__checkmark" />
-                </label>
-                <div class="migration-wizard__item-text">
-                  <div class="label">{language.t("migration.migrate.chatHistory")}</div>
-                  <div class="desc">{language.t("migration.migrate.chatHistoryDesc")}</div>
-                </div>
-              </div>
 
               {/* Cleanup option after done */}
               <Show when={phase() === "done"}>

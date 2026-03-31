@@ -32,6 +32,7 @@ import type {
   MigrationCustomModeInfo,
   MigrationResultItem,
 } from "./legacy-types"
+import { migrate as migrateSession } from "./sessions/migrate"
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -68,6 +69,7 @@ export async function detectLegacyData(context: vscode.ExtensionContext): Promis
   const mcpSettings = await readLegacyMcpSettings(context)
   const customModes = await readLegacyCustomModes(context)
   const settings = readLegacySettings(context)
+  const sessions = await readSessionsInGlobalStorage(context)
 
   const oauthProviders = new Set<string>()
   const codexRaw = await context.secrets.get(CODEX_OAUTH_SECRET_KEY)
@@ -92,16 +94,27 @@ export async function detectLegacyData(context: vscode.ExtensionContext): Promis
     Boolean(settings.language) ||
     Boolean(settings.autocomplete)
 
-  const hasData = providers.length > 0 || mcpServers.length > 0 || modes.length > 0 || hasSettings
+  const hasData =
+    providers.length > 0 || mcpServers.length > 0 || modes.length > 0 || hasSettings || sessions.length > 0
 
   return {
     providers,
     mcpServers,
     customModes: modes,
+    sessions: sessions.length > 0 ? sessions : undefined,
     defaultModel,
     settings: hasSettings ? settings : undefined,
     hasData,
   }
+}
+
+async function readSessionsInGlobalStorage(context: vscode.ExtensionContext) {
+  const dir = vscode.Uri.joinPath(context.globalStorageUri, "tasks")
+  const items = await vscode.workspace.fs.readDirectory(dir).then(
+    (items) => items,
+    () => [] as [string, vscode.FileType][],
+  )
+  return items.filter(([, type]) => type === vscode.FileType.Directory).map(([name]) => name)
 }
 
 // ---------------------------------------------------------------------------
@@ -194,6 +207,24 @@ export async function migrate(
     }
     if (Object.keys(agentConfig).length > 0) {
       await client.global.config.update({ config: { agent: agentConfig } })
+    }
+  }
+
+  if (selections.sessions?.length) {
+    for (const id of selections.sessions) {
+      onProgress("Chat sessions", "migrating")
+      const result = await migrateSession(id, context, client)
+      results.push({
+        item: id,
+        category: "session",
+        status: result.ok ? "success" : "error",
+        message: result.ok ? "Session migrated" : "Session migration failed",
+      })
+      onProgress(
+        "Chat sessions",
+        result.ok ? "success" : "error",
+        result.ok ? "Session migrated" : "Session migration failed",
+      )
     }
   }
 
@@ -372,6 +403,24 @@ async function migrateProvider(
   const apiKey = settings[mapping.key] as string | undefined
   if (!apiKey) {
     return { item: profileName, category: "provider", status: "warning", message: "No API key found in profile" }
+  }
+
+  // The profile endpoint requires type:"oauth". The legacy extension stored the same Kilo
+  // API token — write it in the OAuth format the new extension expects (matching device-auth:
+  // access + refresh + 1-year expiry).
+  if (mapping.id === "kilo") {
+    const org = mapping.organizationIdField ? (settings[mapping.organizationIdField] as string | undefined) : undefined
+    await client.auth.set({
+      providerID: "kilo",
+      auth: {
+        type: "oauth" as const,
+        access: apiKey,
+        refresh: apiKey,
+        expires: Date.now() + 365 * 24 * 60 * 60 * 1000,
+        accountId: org,
+      },
+    })
+    return { item: profileName, category: "provider", status: "success" }
   }
 
   // For providers that support an organization ID (e.g. Kilo Gateway), migrate using OAuth
