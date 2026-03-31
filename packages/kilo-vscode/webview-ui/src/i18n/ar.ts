@@ -939,6 +939,7 @@ export const dict = {
   "prompt.placeholder.default": "اكتب رسالة... (Enter للإرسال، Shift+Enter لسطر جديد)",
 
   "context.usage.sessionCost": "تكلفة الجلسة",
+  "context.stats.thisSession": "هذه الجلسة",
 
   "time.justNow": "الآن",
   "time.minutesAgo": "قبل {{count}} دقيقة",
