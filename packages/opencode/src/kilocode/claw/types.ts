@@ -16,6 +16,7 @@ export type ClawStatus = {
   lastStoppedAt?: string | null
   channelCount?: number
   secretCount?: number
+  userId?: string
 }
 
 export type ChatCredentials = {

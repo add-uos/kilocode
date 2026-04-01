@@ -12,6 +12,7 @@ import { useDialog } from "@tui/ui/dialog"
 import { useToast } from "@tui/ui/toast"
 import { DialogAlert } from "@tui/ui/dialog-alert"
 import type { Organization } from "@kilocode/kilo-gateway"
+import type { ClawStatus } from "./claw/types.js"
 import { DialogKiloTeamSelect } from "./components/dialog-kilo-team-select.js"
 import { DialogKiloProfile } from "./components/dialog-kilo-profile.js"
 import { DialogClawSetup } from "./components/dialog-claw-setup.js"
@@ -53,9 +54,10 @@ export function registerKiloCommands(useSDK: () => UseSDK) {
       onSelect: async () => {
         // Check instance status first
         const res = await sdk.client.kilo.claw.status().catch(() => null)
+        const status = res?.data as ClawStatus | undefined
 
         // No instance provisioned
-        if (!res?.data || !res.data.userId || res.error) {
+        if (!status || !status.userId || res.error) {
           dialog.replace(() => <DialogClawSetup />)
           return
         }

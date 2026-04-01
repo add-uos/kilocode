@@ -507,7 +507,22 @@ export function createKiloRoutes(deps: KiloRoutesDeps) {
             description: "Instance status",
             content: {
               "application/json": {
-                schema: resolver(z.unknown()),
+                schema: resolver(
+                  z.object({
+                    status: z
+                      .enum(["provisioned", "starting", "restarting", "running", "stopped", "destroying"])
+                      .nullable(),
+                    sandboxId: z.string().optional(),
+                    flyRegion: z.string().optional(),
+                    machineSize: z.object({ cpus: z.number(), memory_mb: z.number() }).optional(),
+                    openclawVersion: z.string().nullable().optional(),
+                    lastStartedAt: z.string().nullable().optional(),
+                    lastStoppedAt: z.string().nullable().optional(),
+                    channelCount: z.number().optional(),
+                    secretCount: z.number().optional(),
+                    userId: z.string().optional(),
+                  }),
+                ),
               },
             },
           },

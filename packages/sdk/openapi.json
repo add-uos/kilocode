@@ -6601,7 +6601,92 @@
             "description": "Instance status",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": [
+                            "provisioned",
+                            "starting",
+                            "restarting",
+                            "running",
+                            "stopped",
+                            "destroying"
+                          ]
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "sandboxId": {
+                      "type": "string"
+                    },
+                    "flyRegion": {
+                      "type": "string"
+                    },
+                    "machineSize": {
+                      "type": "object",
+                      "properties": {
+                        "cpus": {
+                          "type": "number"
+                        },
+                        "memory_mb": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "cpus",
+                        "memory_mb"
+                      ]
+                    },
+                    "openclawVersion": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "lastStartedAt": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "lastStoppedAt": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "channelCount": {
+                      "type": "number"
+                    },
+                    "secretCount": {
+                      "type": "number"
+                    },
+                    "userId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "status"
+                  ]
+                }
               }
             }
           }
