@@ -97,12 +97,12 @@ export function DialogSessionList() {
       }}
       onSelect={(option) => {
         const item = sessions().find((x) => x.id === option.value)
+        const project =
+          global() && item && "project" in item
+            ? (item as { project?: { worktree?: string } | null }).project
+            : undefined
         const cross =
-          global() &&
-          item &&
-          "project" in item &&
-          item.project?.worktree !== undefined &&
-          item.project.worktree !== sync.data.path.worktree
+          global() && item && project?.worktree !== undefined && project.worktree !== sync.data.path.worktree
         if (cross) {
           toast.show({
             message: "Open this session from its own project",

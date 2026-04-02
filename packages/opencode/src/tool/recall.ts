@@ -110,7 +110,7 @@ async function read(params: { sessionID?: string }, ctx: Tool.Context) {
     })
   }
 
-  const msgs = await Session.messages({ sessionID: session.id, limit: 200 })
+  const msgs = await Session.messages({ sessionID: session.id })
   const lines: string[] = [
     `# Session: ${session.title}`,
     `Project: ${session.directory}`,
