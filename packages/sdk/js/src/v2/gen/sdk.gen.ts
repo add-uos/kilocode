@@ -179,6 +179,11 @@ import type {
   SessionUpdateResponses,
   SessionViewedResponses,
   SubtaskPartInput,
+  SuggestionAcceptErrors,
+  SuggestionAcceptResponses,
+  SuggestionDismissErrors,
+  SuggestionDismissResponses,
+  SuggestionListResponses,
   TelemetryCaptureErrors,
   TelemetryCaptureResponses,
   TextPartInput,
@@ -2713,6 +2718,109 @@ export class Question extends HeyApiClient {
   }
 }
 
+export class Suggestion extends HeyApiClient {
+  /**
+   * List pending suggestions
+   *
+   * Get all pending suggestion requests across all sessions.
+   */
+  public list<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      workspace?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<SuggestionListResponses, unknown, ThrowOnError>({
+      url: "/suggestion",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Accept suggestion request
+   *
+   * Accept a suggestion request from the AI assistant.
+   */
+  public accept<ThrowOnError extends boolean = false>(
+    parameters: {
+      requestID: string
+      directory?: string
+      workspace?: string
+      index?: number
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "requestID" },
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+            { in: "body", key: "index" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<SuggestionAcceptResponses, SuggestionAcceptErrors, ThrowOnError>({
+      url: "/suggestion/{requestID}/accept",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+
+  /**
+   * Dismiss suggestion request
+   *
+   * Dismiss a suggestion request from the AI assistant.
+   */
+  public dismiss<ThrowOnError extends boolean = false>(
+    parameters: {
+      requestID: string
+      directory?: string
+      workspace?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "requestID" },
+            { in: "query", key: "directory" },
+            { in: "query", key: "workspace" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<SuggestionDismissResponses, SuggestionDismissErrors, ThrowOnError>({
+      url: "/suggestion/{requestID}/dismiss",
+      ...options,
+      ...params,
+    })
+  }
+}
+
 export class Oauth extends HeyApiClient {
   /**
    * OAuth authorize
@@ -4800,6 +4908,11 @@ export class KiloClient extends HeyApiClient {
   private _question?: Question
   get question(): Question {
     return (this._question ??= new Question({ client: this.client }))
+  }
+
+  private _suggestion?: Suggestion
+  get suggestion(): Suggestion {
+    return (this._suggestion ??= new Suggestion({ client: this.client }))
   }
 
   private _provider?: Provider

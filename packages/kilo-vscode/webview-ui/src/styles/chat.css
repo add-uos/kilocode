@@ -2955,6 +2955,51 @@ body.vscode-light
   }
 }
 
+/* ============================================
+   Suggest Bar
+   ============================================ */
+
+[data-component="suggest-bar"] {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 8px 12px 0;
+  padding: 10px 12px;
+  border: 1px solid var(--border-weak-base);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--background-base) 88%, var(--vscode-textLink-foreground) 12%);
+
+  [data-slot="suggest-bar-copy"] {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    flex: 1;
+  }
+
+  [data-slot="suggest-bar-icon"] {
+    display: inline-flex;
+    align-items: center;
+    color: var(--text-info, var(--vscode-textLink-foreground));
+    flex-shrink: 0;
+  }
+
+  [data-slot="suggest-bar-text"] {
+    min-width: 0;
+    color: var(--text-base);
+    font-size: 12px;
+    line-height: 1.4;
+  }
+
+  [data-slot="suggest-bar-actions"] {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+}
+
 /* Collapsed: chevron points UP (rotate 180). Expanded: chevron points DOWN (default). */
 [data-component="question-dock"][data-collapsed="true"] [data-slot="question-collapse-toggle"] {
   transform: rotate(180deg);

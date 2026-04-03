@@ -9,6 +9,7 @@ import type {
   Command,
   PermissionRequest,
   QuestionRequest,
+  SuggestionRequest,
   LspStatus,
   McpStatus,
   McpResource,
@@ -46,6 +47,9 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
       }
       question: {
         [sessionID: string]: QuestionRequest[]
+      }
+      suggestion: {
+        [sessionID: string]: SuggestionRequest[]
       }
       config: Config
       session: Session[]
@@ -87,6 +91,7 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
       agent: [],
       permission: {},
       question: {},
+      suggestion: {},
       command: [],
       provider: [],
       provider_default: {},
@@ -129,6 +134,9 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
           delete draft.session_diff[sessionID]
           delete draft.session_status[sessionID]
           delete draft.todo[sessionID]
+          delete draft.permission[sessionID]
+          delete draft.question[sessionID]
+          delete draft.suggestion[sessionID]
         }),
       )
       fullSyncedSessions.delete(sessionID)
@@ -216,6 +224,44 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
           }
           setStore(
             "question",
+            request.sessionID,
+            produce((draft) => {
+              draft.splice(match.index, 0, request)
+            }),
+          )
+          break
+        }
+
+        case "suggestion.accepted":
+        case "suggestion.dismissed": {
+          const requests = store.suggestion[event.properties.sessionID]
+          if (!requests) break
+          const match = Binary.search(requests, event.properties.requestID, (r) => r.id)
+          if (!match.found) break
+          setStore(
+            "suggestion",
+            event.properties.sessionID,
+            produce((draft) => {
+              draft.splice(match.index, 1)
+            }),
+          )
+          break
+        }
+
+        case "suggestion.shown": {
+          const request = event.properties
+          const requests = store.suggestion[request.sessionID]
+          if (!requests) {
+            setStore("suggestion", request.sessionID, [request])
+            break
+          }
+          const match = Binary.search(requests, request.id, (r) => r.id)
+          if (match.found) {
+            setStore("suggestion", request.sessionID, match.index, reconcile(request))
+            break
+          }
+          setStore(
+            "suggestion",
             request.sessionID,
             produce((draft) => {
               draft.splice(match.index, 0, request)

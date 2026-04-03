@@ -14,6 +14,7 @@ import { MessageList } from "./MessageList"
 import { PromptInput } from "./PromptInput"
 import { QuestionDock } from "./QuestionDock"
 import { PermissionDock } from "./PermissionDock"
+import { SuggestBar } from "./SuggestBar"
 import { StartupErrorBanner } from "./StartupErrorBanner"
 import { useSession } from "../../context/session"
 import { useVSCode } from "../../context/vscode"
@@ -54,8 +55,10 @@ export const ChatView: Component<ChatViewProps> = (props) => {
   // not once per accessor call (questionRequest, permissionRequest, blocked all read these).
   const familyPermissions = createMemo(() => session.scopedPermissions(id()))
   const familyQuestions = createMemo(() => session.scopedQuestions(id()))
+  const familySuggestions = createMemo(() => session.scopedSuggestions(id()))
   const blockingQuestions = () => familyQuestions().filter((q) => q.blocking !== false)
   const nonBlockingQuestions = () => familyQuestions().filter((q) => q.blocking === false)
+  const suggestionRequest = () => familySuggestions()[0]
 
   // Prefer blocking questions first, then fall back to non-blocking ones.
   const questionRequest = () => blockingQuestions()[0] ?? nonBlockingQuestions()[0]
@@ -136,6 +139,9 @@ export const ChatView: Component<ChatViewProps> = (props) => {
           </Show>
           <Show when={questionRequest()} keyed>
             {(req) => <QuestionDock request={req} />}
+          </Show>
+          <Show when={suggestionRequest()} keyed>
+            {(req) => <SuggestBar request={req} />}
           </Show>
           <Show when={permissionRequest()} keyed>
             {(perm) => (

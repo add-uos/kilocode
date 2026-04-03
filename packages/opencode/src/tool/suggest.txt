@@ -1,0 +1,13 @@
+Use this tool to suggest a lightweight next step to the user. Suggestions are nudges, not questions: the user can accept one action or dismiss the suggestion entirely.
+
+Use cases:
+- Suggesting a code review after implementation appears complete
+- Suggesting running tests after making changes
+- Suggesting a clear next step after finishing a task
+
+Guidelines:
+- Only suggest something when you are at least 90% confident it is appropriate
+- Keep the suggestion text concise and actionable
+- Provide 1-2 actions maximum
+- Make each action prompt self-contained so it can be injected as a synthetic user message
+- If you need a real answer from the user, use the `question` tool instead

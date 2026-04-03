@@ -1,5 +1,6 @@
 import { PlanExitTool } from "./plan"
 import { QuestionTool } from "./question"
+import { SuggestTool } from "./suggest"
 import { BashTool } from "./bash"
 import { EditTool } from "./edit"
 import { GlobTool } from "./glob"
@@ -99,11 +100,13 @@ export namespace ToolRegistry {
   async function all(): Promise<Tool.Info[]> {
     const custom = await state().then((x) => x.custom)
     const config = await Config.get()
-    const question = ["app", "cli", "desktop"].includes(Flag.KILO_CLIENT) || Flag.KILO_ENABLE_QUESTION_TOOL
+    const interactive = ["app", "cli", "desktop", "vscode"].includes(Flag.KILO_CLIENT) || Flag.KILO_ENABLE_QUESTION_TOOL
+    const suggest = ["cli", "vscode"].includes(Flag.KILO_CLIENT) && interactive
 
     return [
       InvalidTool,
-      ...(["app", "cli", "desktop", "vscode"].includes(Flag.KILO_CLIENT) && question ? [QuestionTool] : []), // kilocode_change
+      ...(["app", "cli", "desktop", "vscode"].includes(Flag.KILO_CLIENT) && interactive ? [QuestionTool] : []), // kilocode_change
+      ...(suggest ? [SuggestTool] : []),
       BashTool,
       ReadTool,
       GlobTool,

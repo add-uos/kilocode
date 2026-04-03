@@ -15,6 +15,7 @@ import { Config } from "@/config/config"
 import { SessionCompaction } from "./compaction"
 import { PermissionNext } from "@/permission/next"
 import { Question } from "@/question"
+import { Suggestion } from "@/suggestion"
 import { Telemetry } from "@kilocode/kilo-telemetry" // kilocode_change
 import { Flag } from "@/flag/flag" // kilocode_change
 
@@ -199,6 +200,10 @@ export namespace SessionProcessor {
                       },
                     })
 
+                    if (match.tool === "suggest" && value.output.metadata?.dismissed === true) {
+                      blocked = shouldBreak
+                    }
+
                     delete toolcalls[value.toolCallId]
                   }
                   break
@@ -222,7 +227,8 @@ export namespace SessionProcessor {
 
                     if (
                       value.error instanceof PermissionNext.RejectedError ||
-                      value.error instanceof Question.RejectedError
+                      value.error instanceof Question.RejectedError ||
+                      value.error instanceof Suggestion.DismissedError
                     ) {
                       blocked = shouldBreak
                     }

@@ -197,6 +197,24 @@ export interface QuestionRequest {
   }
 }
 
+export interface SuggestionAction {
+  label: string
+  description?: string
+  prompt: string
+}
+
+export interface SuggestionRequest {
+  id: string
+  sessionID: string
+  text: string
+  actions: SuggestionAction[]
+  blocking?: boolean
+  tool?: {
+    messageID: string
+    callID: string
+  }
+}
+
 // Skill info from CLI backend
 export interface SkillInfo {
   name: string
@@ -700,6 +718,21 @@ export interface QuestionResolvedMessage {
 
 export interface QuestionErrorMessage {
   type: "questionError"
+  requestID: string
+}
+
+export interface SuggestionRequestMessage {
+  type: "suggestionRequest"
+  suggestion: SuggestionRequest
+}
+
+export interface SuggestionResolvedMessage {
+  type: "suggestionResolved"
+  requestID: string
+}
+
+export interface SuggestionErrorMessage {
+  type: "suggestionError"
   requestID: string
 }
 
@@ -1276,6 +1309,9 @@ export type ExtensionMessage =
   | QuestionRequestMessage
   | QuestionResolvedMessage
   | QuestionErrorMessage
+  | SuggestionRequestMessage
+  | SuggestionResolvedMessage
+  | SuggestionErrorMessage
   | BrowserSettingsLoadedMessage
   | ConfigLoadedMessage
   | ConfigUpdatedMessage
@@ -1564,6 +1600,17 @@ export interface QuestionReplyRequest {
 
 export interface QuestionRejectRequest {
   type: "questionReject"
+  requestID: string
+}
+
+export interface SuggestionAcceptRequest {
+  type: "suggestionAccept"
+  requestID: string
+  index: number
+}
+
+export interface SuggestionDismissRequest {
+  type: "suggestionDismiss"
   requestID: string
 }
 
@@ -2046,6 +2093,8 @@ export type WebviewMessage =
   | SetLanguageRequest
   | QuestionReplyRequest
   | QuestionRejectRequest
+  | SuggestionAcceptRequest
+  | SuggestionDismissRequest
   | DeleteSessionRequest
   | RenameSessionRequest
   | RequestAutocompleteSettingsMessage

@@ -225,6 +225,19 @@ export type WebviewMessage =
       question: { id: string; sessionID: string; questions: unknown[]; blocking?: boolean; tool?: unknown }
     }
   | { type: "questionResolved"; requestID: string }
+  | {
+      type: "suggestionRequest"
+      suggestion: {
+        id: string
+        sessionID: string
+        text: string
+        actions: unknown[]
+        blocking?: boolean
+        tool?: unknown
+      }
+    }
+  | { type: "suggestionResolved"; requestID: string }
+  | { type: "suggestionError"; requestID: string }
   | { type: "permissionResolved"; permissionID: string }
   | { type: "permissionError"; permissionID: string }
   | { type: "sessionCreated"; session: ReturnType<typeof sessionToWebview> }
@@ -323,6 +336,24 @@ export function mapSSEEventToWebviewMessage(event: Event, sessionID: string | un
     case "question.rejected":
       return {
         type: "questionResolved",
+        requestID: event.properties.requestID,
+      }
+    case "suggestion.shown":
+      return {
+        type: "suggestionRequest",
+        suggestion: {
+          id: event.properties.id,
+          sessionID: event.properties.sessionID,
+          text: event.properties.text,
+          actions: event.properties.actions,
+          blocking: event.properties.blocking,
+          tool: event.properties.tool,
+        },
+      }
+    case "suggestion.accepted":
+    case "suggestion.dismissed":
+      return {
+        type: "suggestionResolved",
         requestID: event.properties.requestID,
       }
     case "session.error": {

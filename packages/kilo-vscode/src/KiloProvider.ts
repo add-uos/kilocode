@@ -68,6 +68,12 @@ import {
   type PermissionContext,
 } from "./kilo-provider/handlers/permission-handler"
 import { handleQuestionReply, handleQuestionReject } from "./kilo-provider/handlers/question"
+import {
+  fetchAndSendPendingSuggestions,
+  handleSuggestionAccept,
+  handleSuggestionDismiss,
+  type SuggestionContext,
+} from "./kilo-provider/handlers/suggestion"
 
 import {
   buildActionContext,
@@ -673,6 +679,12 @@ export class KiloProvider implements vscode.WebviewViewProvider, TelemetryProper
         case "questionReject":
           await handleQuestionReject(this.questionCtx, message.requestID)
           break
+        case "suggestionAccept":
+          await handleSuggestionAccept(this.suggestionCtx, message.requestID, message.index)
+          break
+        case "suggestionDismiss":
+          await handleSuggestionDismiss(this.suggestionCtx, message.requestID)
+          break
         case "requestConfig":
           this.fetchAndSendConfig().catch((e) => console.error("[Kilo New] fetchAndSendConfig failed:", e))
           break
@@ -994,6 +1006,7 @@ export class KiloProvider implements vscode.WebviewViewProvider, TelemetryProper
             await this.syncWebviewState("sse-connected")
             await this.flushPendingSessionRefresh("sse-connected")
             await fetchAndSendPendingPermissions(this.permissionCtx)
+            await fetchAndSendPendingSuggestions(this.suggestionCtx)
           } catch (error) {
             console.error("[Kilo New] KiloProvider: ❌ Failed during connected state handling:", error)
             this.postMessage({
@@ -1207,6 +1220,7 @@ export class KiloProvider implements vscode.WebviewViewProvider, TelemetryProper
       // Recover any permission.asked events that were missed while the webview
       // was loading or during an SSE reconnection (fire-and-forget).
       void fetchAndSendPendingPermissions(this.permissionCtx)
+      void fetchAndSendPendingSuggestions(this.suggestionCtx)
     } catch (error) {
       // Silently ignore aborted requests — the user switched to a different session
       if (abort.signal.aborted) return
@@ -2275,6 +2289,17 @@ export class KiloProvider implements vscode.WebviewViewProvider, TelemetryProper
     return {
       client: this.client,
       currentSessionId: this.currentSession?.id,
+      postMessage: (msg: unknown) => this.postMessage(msg),
+      getWorkspaceDirectory: (sid?: string) => this.getWorkspaceDirectory(sid),
+    }
+  }
+
+  private get suggestionCtx(): SuggestionContext {
+    return {
+      client: this.client,
+      currentSessionId: this.currentSession?.id,
+      trackedSessionIds: this.trackedSessionIds,
+      sessionDirectories: this.sessionDirectories,
       postMessage: (msg: unknown) => this.postMessage(msg),
       getWorkspaceDirectory: (sid?: string) => this.getWorkspaceDirectory(sid),
     }

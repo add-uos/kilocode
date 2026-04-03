@@ -40,6 +40,9 @@ export function resolveEventSessionId(
     case "question.asked":
     case "question.replied":
     case "question.rejected":
+    case "suggestion.shown":
+    case "suggestion.accepted":
+    case "suggestion.dismissed":
       return event.properties.sessionID
     default:
       return undefined

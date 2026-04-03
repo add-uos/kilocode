@@ -192,6 +192,7 @@ export namespace Agent {
         ...Object.fromEntries(whitelistedDirs.map((dir) => [dir, "allow"])),
       },
       question: "deny",
+      suggest: "deny",
       plan_enter: "deny",
       plan_exit: "deny",
       // mirrors github.com/github/gitignore Node.gitignore pattern for .env files
@@ -215,6 +216,7 @@ export namespace Agent {
           defaults,
           PermissionNext.fromConfig({
             question: "allow",
+            suggest: "allow",
             plan_enter: "allow",
           }),
           user,
@@ -230,6 +232,7 @@ export namespace Agent {
           defaults,
           PermissionNext.fromConfig({
             question: "allow",
+            suggest: "allow",
             plan_exit: "allow",
             external_directory: {
               [path.join(Global.Path.data, "plans", "*")]: "allow",
@@ -256,6 +259,7 @@ export namespace Agent {
           defaults,
           PermissionNext.fromConfig({
             question: "allow",
+            suggest: "allow",
             plan_enter: "allow",
           }),
           user,
@@ -278,6 +282,7 @@ export namespace Agent {
             list: "allow",
             // bash: "allow", // kilocode_change - disabled to prevent orchestrator from writing files via shell commands instead of delegating to sub-agents
             question: "allow",
+            suggest: "allow",
             task: "allow",
             todoread: "allow",
             todowrite: "allow",

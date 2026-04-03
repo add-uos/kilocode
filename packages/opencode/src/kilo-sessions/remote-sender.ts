@@ -5,6 +5,7 @@ import { Instance } from "@/project/instance"
 import { Session } from "@/session"
 import { SessionPrompt } from "@/session/prompt"
 import { Question } from "@/question"
+import { Suggestion } from "@/suggestion"
 import { PermissionNext } from "@/permission/next"
 import { Log } from "@/util/log"
 import z from "zod"
@@ -20,11 +21,18 @@ const PermissionData = z.object({
   message: z.string().optional(),
 })
 
-const RemotePromptInput = SessionPrompt.PromptInput.extend({
-  model: z.string().optional(),
+const SuggestionData = z.object({
+  requestID: z.string(),
+  index: z.number().int().nonnegative(),
 })
 
-function normalizeModel(model: z.infer<typeof RemotePromptInput.shape.model>) {
+const RemotePromptInput = z
+  .object({
+    model: z.string().optional(),
+  })
+  .passthrough()
+
+function normalizeModel(model: string | undefined) {
   if (!model) return undefined
   return {
     providerID: "kilo",
@@ -32,7 +40,7 @@ function normalizeModel(model: z.infer<typeof RemotePromptInput.shape.model>) {
   }
 }
 
-function normalizePrompt(input: z.infer<typeof RemotePromptInput>): SessionPrompt.PromptInput {
+function normalizePrompt(input: z.infer<typeof RemotePromptInput>) {
   return {
     ...input,
     model: normalizeModel(input.model),
@@ -90,11 +98,24 @@ export namespace RemoteSender {
       }
     }
 
-    // Replay pending questions/permissions so a newly-subscribed web client
+    // Replay pending suggestions/questions/permissions so a newly-subscribed web client
     // sees state that was asked before it connected — analogous to the Cloud
     // Agent's `connected` event carrying pending question/permission fields.
     async function replay(sessionId: string) {
-      const [questions, permissions] = await Promise.all([Question.list(), PermissionNext.list()])
+      const [suggestions, questions, permissions] = await Promise.all([
+        Suggestion.list(),
+        Question.list(),
+        PermissionNext.list(),
+      ])
+      for (const suggestion of suggestions) {
+        if (suggestion.sessionID !== sessionId) continue
+        options.conn.send({
+          type: "event",
+          sessionId,
+          event: "suggestion.shown",
+          data: suggestion,
+        })
+      }
       for (const q of questions) {
         if (q.sessionID !== sessionId) continue
         options.conn.send({
@@ -256,6 +277,32 @@ export namespace RemoteSender {
           return
         }
         dispatchQuick(msg, () => Question.reject(parsed.data.requestID))
+        return
+      }
+      if (msg.command === "suggestion_accept") {
+        const parsed = SuggestionData.safeParse(msg.data)
+        if (!parsed.success) {
+          options.conn.send({
+            type: "response",
+            id: msg.id,
+            error: "invalid suggestion_accept data: " + parsed.error.message,
+          })
+          return
+        }
+        dispatchQuick(msg, () => Suggestion.accept(parsed.data))
+        return
+      }
+      if (msg.command === "suggestion_dismiss") {
+        const parsed = z.object({ requestID: z.string() }).safeParse(msg.data)
+        if (!parsed.success) {
+          options.conn.send({
+            type: "response",
+            id: msg.id,
+            error: "invalid suggestion_dismiss data: " + parsed.error.message,
+          })
+          return
+        }
+        dispatchQuick(msg, () => Suggestion.dismiss(parsed.data.requestID))
         return
       }
       if (msg.command === "permission_respond") {
