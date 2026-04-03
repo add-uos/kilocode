@@ -2,4 +2,14 @@
 build/
 .intellijPlatform/
 .ai/
+.classpath
+.project
+.settings/
+.kotlin/
+bin/
+**/.classpath
+**/.project
+**/.settings/
+**/.kotlin/
+**/bin/
 !gradle/wrapper/gradle-wrapper.jar
