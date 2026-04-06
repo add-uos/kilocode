@@ -704,7 +704,7 @@ function App() {
     },
     // kilocode_change start
     {
-      title: kv.get("allow_everything_global") ? "Disable allow everything" : "Enable allow everything",
+      title: kv.get("allow_everything_global") ? "Disable auto-approve mode" : "Enable auto-approve mode",
       value: "permission.allow_everything",
       category: "System",
       onSelect: (dialog) => {
