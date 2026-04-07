@@ -124,6 +124,7 @@ export class KiloProvider implements vscode.WebviewViewProvider, TelemetryProper
   private cachedMcpStatusMessage: unknown = null
   /** Ref-count of in-flight handleUpdateConfig calls; prevents fetchAndSendConfig from sending stale data */
   private pending = 0
+  private configWarningsShown = false // kilocode_change - prevent repeated config warnings on SSE reconnect
   /** Cached notificationsLoaded payload */
   private cachedNotificationsMessage: unknown = null
   private pendingReviewComments: { comments: unknown[]; autoSend: boolean }[] = []
@@ -1058,6 +1059,7 @@ export class KiloProvider implements vscode.WebviewViewProvider, TelemetryProper
             await this.flushPendingSessionRefresh("sse-connected")
             await fetchAndSendPendingPermissions(this.permissionCtx)
             await fetchAndSendPendingQuestions(this.questionCtx)
+            await this.checkConfigWarnings() // kilocode_change
           } catch (error) {
             console.error("[Kilo New] KiloProvider: ❌ Failed during connected state handling:", error)
             this.postMessage({
@@ -1946,6 +1948,28 @@ export class KiloProvider implements vscode.WebviewViewProvider, TelemetryProper
       console.error("[Kilo New] KiloProvider: Failed to fetch config after update:", error)
     }
   }
+
+  // kilocode_change start
+  /**
+   * Fetch config warnings from the server and display them as VS Code warning messages.
+   * Only shown once per provider lifecycle (flag resets on dispose/re-create, not on SSE reconnect).
+   */
+  private async checkConfigWarnings(): Promise<void> {
+    if (this.configWarningsShown || !this.client) return
+    try {
+      const dir = this.getWorkspaceDirectory()
+      const result = await this.client.config.warnings({ directory: dir })
+      const list = result?.data ?? []
+      if (list.length === 0) return
+      this.configWarningsShown = true
+      for (const warning of list) {
+        vscode.window.showWarningMessage(`Config: ${warning.message}`)
+      }
+    } catch {
+      // Endpoint may not exist on older CLI versions — silently ignore
+    }
+  }
+  // kilocode_change end
 
   /**
    * Fetch Kilo news/notifications and send to webview.

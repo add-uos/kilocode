@@ -52,6 +52,14 @@ export namespace Config {
 
   const log = Log.create({ service: "config" })
 
+  // kilocode_change start
+  export const Warning = z.object({
+    path: z.string(),
+    message: z.string(),
+  })
+  export type Warning = z.infer<typeof Warning>
+  // kilocode_change end
+
   // Managed settings directory for enterprise deployments (highest priority, admin-controlled)
   // These settings override all user and project settings
   function systemManagedConfigDir(): string {
@@ -85,6 +93,18 @@ export namespace Config {
 
   // kilocode_change start — capture init so resetState() can invalidate the cache entry
   const stateInit = async () => {
+    // kilocode_change end
+    // kilocode_change start
+    const warnings: Warning[] = []
+    const caught = (err: unknown, source: string) => {
+      const w = toWarning(err)
+      if (w) {
+        warnings.push(w)
+        log.warn("skipped config due to error", { source, err })
+        return
+      }
+      throw err
+    }
     // kilocode_change end
     const auth = await Auth.all()
 
@@ -200,24 +220,32 @@ export namespace Config {
     for (const [key, value] of Object.entries(auth)) {
       if (value.type === "wellknown") {
         const url = key.replace(/\/+$/, "")
-        process.env[value.key] = value.token
-        log.debug("fetching remote config", { url: `${url}/.well-known/opencode` })
-        const response = await fetch(`${url}/.well-known/opencode`)
-        if (!response.ok) {
-          throw new Error(`failed to fetch remote config from ${url}: ${response.status}`)
+        const source = `${url}/.well-known/opencode`
+        try {
+          process.env[value.key] = value.token
+          log.debug("fetching remote config", { url: source })
+          const response = await fetch(source)
+          if (!response.ok) {
+            throw new Error(`failed to fetch remote config from ${url}: ${response.status}`)
+          }
+          const wellknown = (await response.json()) as any
+          const remoteConfig = wellknown.config ?? {}
+          // Add $schema to prevent load() from trying to write back to a non-existent file
+          if (!remoteConfig.$schema) remoteConfig.$schema = "https://app.kilo.ai/config.json" // kilocode_change
+          result = mergeConfigConcatArrays(
+            result,
+            await load(JSON.stringify(remoteConfig), {
+              dir: path.dirname(source),
+              source,
+            }),
+          )
+          log.debug("loaded remote config from well-known", { url })
+        } catch (err) {
+          const w = toWarning(err)
+          if (w) warnings.push(w)
+          else warnings.push({ path: source, message: err instanceof Error ? err.message : String(err) })
+          log.warn("skipped remote config due to error", { url, err })
         }
-        const wellknown = (await response.json()) as any
-        const remoteConfig = wellknown.config ?? {}
-        // Add $schema to prevent load() from trying to write back to a non-existent file
-        if (!remoteConfig.$schema) remoteConfig.$schema = "https://app.kilo.ai/config.json" // kilocode_change
-        result = mergeConfigConcatArrays(
-          result,
-          await load(JSON.stringify(remoteConfig), {
-            dir: path.dirname(`${url}/.well-known/opencode`),
-            source: `${url}/.well-known/opencode`,
-          }),
-        )
-        log.debug("loaded remote config from well-known", { url })
       }
     }
 
@@ -226,12 +254,20 @@ export namespace Config {
     }
 
     // Global user config overrides remote config.
-    result = mergeConfigConcatArrays(result, await global())
+    try {
+      result = mergeConfigConcatArrays(result, await global())
+    } catch (err) {
+      caught(err, "global config")
+    }
 
     // Custom config path overrides global config.
     if (Flag.KILO_CONFIG) {
-      result = mergeConfigConcatArrays(result, await loadFile(Flag.KILO_CONFIG))
-      log.debug("loaded custom config", { path: Flag.KILO_CONFIG })
+      try {
+        result = mergeConfigConcatArrays(result, await loadFile(Flag.KILO_CONFIG))
+        log.debug("loaded custom config", { path: Flag.KILO_CONFIG })
+      } catch (err) {
+        caught(err, Flag.KILO_CONFIG)
+      }
     }
 
     // Project config overrides global and remote config.
@@ -239,7 +275,11 @@ export namespace Config {
       // kilocode_change start
       for (const file of ["kilo.jsonc", "kilo.json", "opencode.jsonc", "opencode.json"]) {
         // kilocode_change end
-        result = mergeConfigConcatArrays(result, await loadFile(file))
+        try {
+          result = mergeConfigConcatArrays(result, await loadFile(file))
+        } catch (err) {
+          caught(err, file)
+        }
       }
     }
 
@@ -267,7 +307,11 @@ export namespace Config {
         for (const file of ["kilo.jsonc", "kilo.json", "opencode.jsonc", "opencode.json"]) {
           // kilocode_change end
           log.debug(`loading config from ${path.join(dir, file)}`)
-          result = mergeConfigConcatArrays(result, await loadFile(path.join(dir, file)))
+          try {
+            result = mergeConfigConcatArrays(result, await loadFile(path.join(dir, file)))
+          } catch (err) {
+            caught(err, path.join(dir, file))
+          }
           // to satisfy the type checker
           result.agent ??= {}
           result.mode ??= {}
@@ -284,9 +328,9 @@ export namespace Config {
 
       // kilocode_change start
       try {
-        result.command = mergeDeep(result.command ?? {}, await loadCommand(dir))
-        result.agent = mergeDeep(result.agent, await loadAgent(dir))
-        result.agent = mergeDeep(result.agent, await loadMode(dir))
+        result.command = mergeDeep(result.command ?? {}, await loadCommand(dir, warnings))
+        result.agent = mergeDeep(result.agent, await loadAgent(dir, warnings))
+        result.agent = mergeDeep(result.agent, await loadMode(dir, warnings))
         result.plugin.push(...(await loadPlugin(dir)))
       } catch (err: unknown) {
         log.error("failed to load config directory", { dir, err })
@@ -296,14 +340,18 @@ export namespace Config {
 
     // Inline config content overrides all non-managed config sources.
     if (process.env.KILO_CONFIG_CONTENT) {
-      result = mergeConfigConcatArrays(
-        result,
-        await load(process.env.KILO_CONFIG_CONTENT, {
-          dir: Instance.directory,
-          source: "KILO_CONFIG_CONTENT",
-        }),
-      )
-      log.debug("loaded custom config from KILO_CONFIG_CONTENT")
+      try {
+        result = mergeConfigConcatArrays(
+          result,
+          await load(process.env.KILO_CONFIG_CONTENT, {
+            dir: Instance.directory,
+            source: "KILO_CONFIG_CONTENT",
+          }),
+        )
+        log.debug("loaded custom config from KILO_CONFIG_CONTENT")
+      } catch (err) {
+        caught(err, "KILO_CONFIG_CONTENT")
+      }
     }
 
     // Load managed config files last (highest priority) - enterprise admin-controlled
@@ -314,7 +362,11 @@ export namespace Config {
       // kilocode_change start
       for (const file of ["kilo.jsonc", "kilo.json", "opencode.jsonc", "opencode.json"]) {
         // kilocode_change end
-        result = mergeConfigConcatArrays(result, await loadFile(path.join(managedDir, file)))
+        try {
+          result = mergeConfigConcatArrays(result, await loadFile(path.join(managedDir, file)))
+        } catch (err) {
+          caught(err, path.join(managedDir, file))
+        }
       }
     }
 
@@ -367,6 +419,7 @@ export namespace Config {
       config: result,
       directories,
       deps,
+      warnings,
     }
   }
   // kilocode_change start — create state from named init so resetState() can invalidate it
@@ -470,6 +523,25 @@ export namespace Config {
   }
 
   // kilocode_change start
+  function toWarning(err: unknown): Warning | undefined {
+    if (ConfigPaths.JsonError.isInstance(err))
+      return {
+        path: err.data.path,
+        message:
+          `Config file at ${err.data.path} is not valid JSON(C)` + (err.data.message ? `: ${err.data.message}` : ""),
+      }
+    if (ConfigPaths.InvalidError.isInstance(err)) {
+      const text = err.data.issues ? detail(err.data.issues) : err.data.message
+      return {
+        path: err.data.path,
+        message: text
+          ? `Configuration is invalid at ${err.data.path}: ${text}`
+          : `Configuration is invalid at ${err.data.path}`,
+      }
+    }
+    return undefined
+  }
+
   function detail(issues: z.core.$ZodIssue[]) {
     return issues
       .map((issue) => {
@@ -480,10 +552,17 @@ export namespace Config {
       .join("\n")
   }
 
-  async function invalid(kind: "agent" | "command", item: string, issues: z.core.$ZodIssue[], cause: Error) {
+  async function invalid(
+    kind: "agent" | "command",
+    item: string,
+    issues: z.core.$ZodIssue[],
+    cause: Error,
+    warnings?: Warning[],
+  ) {
     const text = detail(issues)
     const message = text ? `Config file at ${item} is invalid: ${text}` : `Config file at ${item} is invalid`
     const err = new InvalidError({ path: item, issues }, { cause })
+    if (warnings) warnings.push({ path: item, message })
     const { Session } = await import("@/session")
     Bus.publish(Session.Event.Error, { error: new NamedError.Unknown({ message }).toObject() })
     if (kind === "command") {
@@ -494,7 +573,7 @@ export namespace Config {
   }
   // kilocode_change end
 
-  async function loadCommand(dir: string) {
+  async function loadCommand(dir: string, warnings?: Warning[]) {
     const result: Record<string, Command> = {}
     for (const item of await Glob.scan("{command,commands}/**/*.md", {
       cwd: dir,
@@ -506,6 +585,7 @@ export namespace Config {
         const message = ConfigMarkdown.FrontmatterError.isInstance(err)
           ? err.data.message
           : `Failed to parse command ${item}`
+        if (warnings) warnings.push({ path: item, message })
         const { Session } = await import("@/session")
         Bus.publish(Session.Event.Error, { error: new NamedError.Unknown({ message }).toObject() })
         log.error("failed to load command", { command: item, err })
@@ -537,13 +617,13 @@ export namespace Config {
         continue
       }
       // kilocode_change start
-      await invalid("command", item, parsed.error.issues, parsed.error)
+      await invalid("command", item, parsed.error.issues, parsed.error, warnings)
       // kilocode_change end
     }
     return result
   }
 
-  async function loadAgent(dir: string) {
+  async function loadAgent(dir: string, warnings?: Warning[]) {
     const result: Record<string, Agent> = {}
 
     for (const item of await Glob.scan("{agent,agents}/**/*.md", {
@@ -556,6 +636,7 @@ export namespace Config {
         const message = ConfigMarkdown.FrontmatterError.isInstance(err)
           ? err.data.message
           : `Failed to parse agent ${item}`
+        if (warnings) warnings.push({ path: item, message })
         const { Session } = await import("@/session")
         Bus.publish(Session.Event.Error, { error: new NamedError.Unknown({ message }).toObject() })
         log.error("failed to load agent", { agent: item, err })
@@ -589,13 +670,13 @@ export namespace Config {
         continue
       }
       // kilocode_change start
-      await invalid("agent", item, parsed.error.issues, parsed.error)
+      await invalid("agent", item, parsed.error.issues, parsed.error, warnings)
       // kilocode_change end
     }
     return result
   }
 
-  async function loadMode(dir: string) {
+  async function loadMode(dir: string, warnings?: Warning[]) {
     const result: Record<string, Agent> = {}
     for (const item of await Glob.scan("{mode,modes}/*.md", {
       cwd: dir,
@@ -607,6 +688,7 @@ export namespace Config {
         const message = ConfigMarkdown.FrontmatterError.isInstance(err)
           ? err.data.message
           : `Failed to parse mode ${item}`
+        if (warnings) warnings.push({ path: item, message })
         const { Session } = await import("@/session")
         Bus.publish(Session.Event.Error, { error: new NamedError.Unknown({ message }).toObject() })
         log.error("failed to load mode", { mode: item, err })
@@ -627,6 +709,9 @@ export namespace Config {
         }
         continue
       }
+      // kilocode_change start
+      await invalid("agent", item, parsed.error.issues, parsed.error, warnings)
+      // kilocode_change end
     }
     return result
   }
@@ -1532,6 +1617,12 @@ export namespace Config {
     return state().then((x) => x.config)
   }
 
+  // kilocode_change start
+  export async function warnings() {
+    return state().then((x) => x.warnings)
+  }
+  // kilocode_change end
+
   export async function getGlobal() {
     return global()
   }
@@ -1741,5 +1832,3 @@ export namespace Config {
     return state().then((x) => x.directories)
   }
 }
-Filesystem.write
-Filesystem.write
