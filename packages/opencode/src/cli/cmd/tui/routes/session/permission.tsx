@@ -427,10 +427,10 @@ export function PermissionPrompt(props: { request: PermissionRequest }) {
                 </text>
                 <text fg={theme.text}>{current.title}</text>
               </box>
-              {/* kilocode_change start - point config protection prompts to command palette */}
+              {/* kilocode_change start - explain config file edits always require approval */}
               <Show when={props.request.metadata?.[ConfigProtection.DISABLE_ALWAYS_KEY]}>
                 <box paddingLeft={4} flexShrink={0}>
-                  <text fg={theme.textMuted}>Use {keybind.print("command_list")} to toggle auto-approve mode</text>
+                  <text fg={theme.textMuted}>Config file edits always require approval</text>
                 </box>
               </Show>
               {/* kilocode_change end */}
