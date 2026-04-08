@@ -78,8 +78,8 @@ let cli = yargs(hideBin(process.argv))
   .parserConfiguration({ "populate--": true })
   .scriptName("kilo") // kilocode_change
   .wrap(100)
-  .help("help", "show help")
-  .alias("help", "h")
+  .help(false)
+  .option("help", { describe: "show help", type: "boolean", alias: "h" })
   .version("version", "show version number", Installation.VERSION)
   .alias("version", "v")
   .option("print-logs", {
@@ -92,6 +92,15 @@ let cli = yargs(hideBin(process.argv))
     choices: ["DEBUG", "INFO", "WARN", "ERROR"],
   })
   .middleware(async (opts) => {
+    if (opts.help) {
+      cli.showHelp()
+      process.exit(0)
+    }
+    if (opts.version) {
+      process.stdout.write(Installation.VERSION + "\n")
+      process.exit(0)
+    }
+
     await Log.init({
       print: process.argv.includes("--print-logs"),
       dev: Installation.isLocal(),
