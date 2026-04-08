@@ -205,7 +205,7 @@ Toggle notifications, Toggle animations, Toggle diff wrapping, Toggle sidebar (`
 | Project      | `./kilo.json`, `./.kilo/kilo.json`                                                                                                                         |
 | Global       | `~/.config/kilo/kilo.json`                                                                                                                                 |
 | Managed      | Linux: `/etc/kilo/kilo.json`, macOS: `/Library/Application Support/kilo/kilo.json`, Windows: `%ProgramData%\kilo\kilo.json` (enterprise, highest priority) |
-| Commands     | `.kilo/command/*.md` (project), `~/.config/kilo/command/*.md` (global)                                                                                     |
+| Commands     | `.kilo/command/*.md` (project), `~/.config/kilo/command/*.md` (global), `KILO_CONFIG_DIR/command/*.md` if set                                              |
 | Agents       | `.kilo/agent/*.md` (project), `~/.config/kilo/agent/*.md` (global)                                                                                         |
 | Skills       | `.kilo/skill/*/SKILL.md`, `.kilo/skills/*/SKILL.md`                                                                                                        |
 | Instructions | `AGENTS.md`, `.kilo/instructions.md`, glob patterns from `instructions`                                                                                    |
