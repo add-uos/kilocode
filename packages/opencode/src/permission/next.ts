@@ -6,6 +6,7 @@ import { PermissionID } from "./schema"
 import { Instance } from "@/project/instance"
 import { Database, eq, NotFoundError } from "@/storage/db"
 import { PermissionTable } from "@/session/session.sql"
+import { Identifier } from "@/id/id"
 import { fn } from "@/util/fn"
 import { Log } from "@/util/log"
 import { ProjectID } from "@/project/schema"
@@ -381,9 +382,9 @@ export namespace PermissionNext {
       else s.approved.push(rule)
 
       if (input.requestID) {
-        const existing = s.pending[input.requestID]
+        const existing = s.pending.get(PermissionID.make(input.requestID))
         if (existing && (!input.sessionID || existing.info.sessionID === input.sessionID)) {
-          delete s.pending[input.requestID]
+          s.pending.delete(PermissionID.make(input.requestID))
           Bus.publish(Event.Replied, {
             sessionID: existing.info.sessionID,
             requestID: existing.info.id,
@@ -393,10 +394,10 @@ export namespace PermissionNext {
         }
       }
 
-      for (const [id, entry] of Object.entries(s.pending)) {
+      for (const [id, entry] of s.pending) {
         if (input.sessionID && entry.info.sessionID !== input.sessionID) continue
         if (ConfigProtection.isRequest(entry.info)) continue
-        delete s.pending[id]
+        s.pending.delete(id)
         Bus.publish(Event.Replied, {
           sessionID: entry.info.sessionID,
           requestID: entry.info.id,
@@ -462,7 +463,7 @@ export namespace PermissionNext {
   // kilocode_change start
   export async function pending(id: string): Promise<Request | undefined> {
     const s = await state()
-    return s.pending[id]?.info
+    return s.pending.get(PermissionID.make(id))?.info
   }
   // kilocode_change end
 }
