@@ -655,7 +655,8 @@ export namespace Config {
         const message = ConfigMarkdown.FrontmatterError.isInstance(err)
           ? err.data.message
           : `Failed to parse agent ${item}`
-        if (warnings) warnings.push({ path: item, message }) // kilocode_change
+        // kilocode_change start
+        if (warnings) warnings.push({ path: item, message })
         try {
           const { Session } = await import("@/session")
           Bus.publish(Session.Event.Error, { error: new NamedError.Unknown({ message }).toObject() })
@@ -664,6 +665,7 @@ export namespace Config {
         }
         log.error("failed to load agent", { agent: item, err })
         return undefined
+        // kilocode_change end
       })
       if (!md) continue
 
