@@ -66,7 +66,7 @@ async function fetchLatest() {
 }
 
 async function fetchHighest() {
-  if (!env.KILO_RELEASE || !process.env.GH_REPO) return fetchLatest()
+  if (!process.env.GH_REPO) return fetchLatest()
   const data: { tagName: string }[] = await $`gh release list --json tagName --limit 100 --repo ${process.env.GH_REPO}`
     .json()
     .catch(() => [])
