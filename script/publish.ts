@@ -62,13 +62,8 @@ if (Script.release) {
   await $`git commit -am "release: v${Script.version}"`
   await $`git tag v${Script.version}`
   await $`git fetch origin`
-  if (!Script.preview) {
-    await $`git cherry-pick HEAD..origin/main`.nothrow()
-    await $`git push origin HEAD --tags --no-verify --force-with-lease`
-  }
-  if (Script.preview) {
-    await $`git push origin HEAD --tags`
-  }
+  await $`git cherry-pick HEAD..origin/main`.nothrow()
+  await $`git push origin HEAD --tags --no-verify --force-with-lease`
   await new Promise((resolve) => setTimeout(resolve, 5_000))
   // kilocode_change end
 
