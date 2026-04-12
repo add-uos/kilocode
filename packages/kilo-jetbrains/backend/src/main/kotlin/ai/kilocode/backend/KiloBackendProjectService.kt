@@ -1,4 +1,4 @@
-package ai.kilocode.server
+package ai.kilocode.backend
 
 import ai.kilocode.jetbrains.api.client.DefaultApi
 import ai.kilocode.rpc.dto.ConnectionStateDto
@@ -15,7 +15,7 @@ import kotlinx.coroutines.flow.map
 
 /**
  * Project-level backend service that delegates to the app-level
- * [KiloAppService] and scopes CLI API calls to this project's
+ * [KiloBackendAppService] and scopes CLI API calls to this project's
  * working directory.
  *
  * The VS Code extension likewise scopes calls via `x-kilo-directory`.
@@ -23,15 +23,15 @@ import kotlinx.coroutines.flow.map
  * parameter to each generated API method.
  */
 @Service(Service.Level.PROJECT)
-class KiloProjectService(
+class KiloBackendProjectService(
     private val project: Project,
     private val cs: CoroutineScope,
 ) {
     companion object {
-        private val LOG = Logger.getInstance(KiloProjectService::class.java)
+        private val LOG = Logger.getInstance(KiloBackendProjectService::class.java)
     }
 
-    private val app: KiloAppService
+    private val app: KiloBackendAppService
         get() = service()
 
     /** Project working directory sent as the `directory` parameter. */

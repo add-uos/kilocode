@@ -1,4 +1,4 @@
-package ai.kilocode.server
+package ai.kilocode.backend
 
 import ai.kilocode.jetbrains.api.client.DefaultApi
 import ai.kilocode.jetbrains.api.model.Config
@@ -19,20 +19,20 @@ import kotlinx.coroutines.launch
  * loads project-independent data after the connection is established.
  *
  * This is the single entry point for the CLI backend. Both
- * [KiloProjectService] and [KiloApiService][ai.kilocode.KiloApiService]
+ * [KiloBackendProjectService] and [KiloApiService][ai.kilocode.KiloApiService]
  * (frontend) reach the CLI through this service.
  *
  * Data flows use the generated OpenAPI model types directly —
  * no intermediate DTOs needed at the backend layer.
  */
 @Service(Service.Level.APP)
-class KiloAppService(private val cs: CoroutineScope) : Disposable {
+class KiloBackendAppService(private val cs: CoroutineScope) : Disposable {
 
     companion object {
-        private val LOG = Logger.getInstance(KiloAppService::class.java)
+        private val LOG = Logger.getInstance(KiloBackendAppService::class.java)
     }
 
-    private val server = ServerManager(cs)
+    private val server = KiloBackendCliManager(cs)
     private val connection = KiloConnectionService(cs, server)
 
     private var router: Job? = null

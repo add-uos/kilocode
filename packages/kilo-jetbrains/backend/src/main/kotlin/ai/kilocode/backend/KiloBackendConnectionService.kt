@@ -1,4 +1,4 @@
-package ai.kilocode.server
+package ai.kilocode.backend
 
 import ai.kilocode.jetbrains.api.client.DefaultApi
 import com.intellij.openapi.diagnostic.Logger
@@ -44,11 +44,11 @@ data class SseEvent(val type: String, val data: String)
  * The generated [DefaultApi] is configured with [apiClient] and exposed via [api]
  * for typed access to all CLI server endpoints.
  *
- * Not a service — owned and instantiated by [KiloAppService].
+ * Not a service — owned and instantiated by [KiloBackendAppService].
  */
 class KiloConnectionService(
-    private val cs: CoroutineScope,
-    private val server: ServerManager,
+  private val cs: CoroutineScope,
+  private val server: KiloBackendCliManager,
 ) {
 
     companion object {
@@ -138,18 +138,18 @@ class KiloConnectionService(
 
         val result = server.init()
 
-        if (result is ServerManager.ServerState.Error) {
+        if (result is KiloBackendCliManager.ServerState.Error) {
             setState(ConnectionState.Error(result.message))
             return
         }
 
-        val ready = result as ServerManager.ServerState.Ready
+        val ready = result as KiloBackendCliManager.ServerState.Ready
         port = ready.port
         password = ready.password
 
         // Create dual OkHttp clients (bundled — no IntelliJ platform deps)
-        val ac = KiloHttpClients.api(password)
-        val hc = KiloHttpClients.health(password)
+        val ac = KiloBackendHttpClients.api(password)
+        val hc = KiloBackendHttpClients.health(password)
         apiClient = ac
         healthClient = hc
 
@@ -285,9 +285,9 @@ class KiloConnectionService(
 
     private fun close() {
         api = null
-        apiClient?.let { KiloHttpClients.shutdown(it) }
+        apiClient?.let { KiloBackendHttpClients.shutdown(it) }
         apiClient = null
-        healthClient?.let { KiloHttpClients.shutdown(it) }
+        healthClient?.let { KiloBackendHttpClients.shutdown(it) }
         healthClient = null
     }
 

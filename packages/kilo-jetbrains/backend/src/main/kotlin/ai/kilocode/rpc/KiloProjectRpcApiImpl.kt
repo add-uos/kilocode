@@ -4,22 +4,21 @@ package ai.kilocode.rpc
 
 import ai.kilocode.rpc.dto.ConnectionStateDto
 import ai.kilocode.rpc.dto.HealthDto
-import ai.kilocode.server.KiloProjectService
+import ai.kilocode.backend.KiloBackendProjectService
 import com.intellij.openapi.components.service
 import com.intellij.platform.project.ProjectId
 import com.intellij.platform.project.findProjectOrNull
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.emptyFlow
 
 /**
  * Backend implementation of [KiloProjectRpcApi].
  *
  * Resolves the project from the [ProjectId] passed by the frontend
- * and delegates to the project-level [KiloProjectService].
+ * and delegates to the project-level [KiloBackendProjectService].
  */
 class KiloProjectRpcApiImpl : KiloProjectRpcApi {
 
-    private fun resolve(id: ProjectId): KiloProjectService {
+    private fun resolve(id: ProjectId): KiloBackendProjectService {
         val project = id.findProjectOrNull()
             ?: throw IllegalStateException("Project not found for id: $id")
         return project.service()

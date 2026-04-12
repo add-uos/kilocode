@@ -1,4 +1,4 @@
-package ai.kilocode.server
+package ai.kilocode.backend
 
 import com.intellij.openapi.application.PathManager
 import com.intellij.openapi.diagnostic.Logger
@@ -27,9 +27,9 @@ import java.util.concurrent.TimeUnit
  * All concurrent callers of [init] share the same startup flow — only one
  * CLI process is ever spawned.
  *
- * Not a service — owned and instantiated by [KiloAppService].
+ * Not a service — owned and instantiated by [KiloBackendAppService].
  */
-class ServerManager(private val cs: CoroutineScope) {
+class KiloBackendCliManager(private val cs: CoroutineScope) {
 
   sealed class ServerState {
     data class Ready(val port: Int, val password: String) : ServerState()
@@ -38,7 +38,7 @@ class ServerManager(private val cs: CoroutineScope) {
   }
 
   companion object {
-    private val LOG = Logger.getInstance(ServerManager::class.java)
+    private val LOG = Logger.getInstance(KiloBackendCliManager::class.java)
     private const val STARTUP_TIMEOUT_MS = 30_000L
     private const val KILL_TIMEOUT_SECONDS = 5L
     private val PORT_REGEX = Regex("""listening on http://[\w.]+:(\d+)""")
