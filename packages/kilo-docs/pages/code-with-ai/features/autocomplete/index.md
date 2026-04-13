@@ -143,7 +143,7 @@ If using Cursor, go to **Settings** > **Cursor Settings** > **Tab**, and toggle 
 {% tabs %}
 {% tab label="VSCode" %}
 
-4. **Check the status bar**: The status bar shows autocomplete state and cost tracking — use it to monitor your usage
+4. **Check the status bar tooltip**: Hover the status bar item to see autocomplete state and cost tracking
 
 {% /tab %}
 {% tab label="VSCode (Legacy)" %}
