@@ -2,6 +2,7 @@ import { Bus } from "@/bus"
 import { BusEvent } from "@/bus/bus-event"
 import { Provider } from "@/provider/provider"
 import { Session } from "@/session"
+import { KiloSession } from "@/kilocode/session"
 import { SessionID } from "@/session/schema"
 import { ModelID, ProviderID } from "@/provider/schema"
 import { MessageV2 } from "@/session/message-v2"
@@ -607,7 +608,7 @@ export namespace KiloSessions {
   }
 
   async function meta(sessionId?: string) {
-    const override = sessionId ? Session.getPlatformOverride(sessionId) : undefined
+    const override = sessionId ? KiloSession.getPlatformOverride(sessionId) : undefined
     const platform = override || process.env["KILO_PLATFORM"] || "cli"
     const orgId = await getOrgId()
     const gitBranch = await Vcs.branch().catch(() => undefined)

@@ -3,7 +3,7 @@ import type { Message } from "@kilocode/sdk/v2"
 
 const fmt = new Intl.NumberFormat("en-US")
 
-export function getUsage(msg: Message[]) {
+export function getUsage(msg: readonly Message[]) {
   return msg.reduce(
     (sum, item) => {
       if (item.role !== "assistant") return sum

@@ -118,6 +118,7 @@ export const GlobalRoutes = lazy(() =>
       }),
       async (c) => {
         log.info("global event connected")
+        c.header("Cache-Control", "no-cache, no-transform")
         c.header("X-Accel-Buffering", "no")
         c.header("X-Content-Type-Options", "nosniff")
 
@@ -157,6 +158,7 @@ export const GlobalRoutes = lazy(() =>
       }),
       async (c) => {
         log.info("global sync event connected")
+        c.header("Cache-Control", "no-cache, no-transform")
         c.header("X-Accel-Buffering", "no")
         c.header("X-Content-Type-Options", "nosniff")
         return streamEvents(c, (q) => {
@@ -239,8 +241,7 @@ export const GlobalRoutes = lazy(() =>
         },
       }),
       async (c) => {
-        Config.global.reset() // kilocode_change - reset cached global config so re-init reads fresh data from disk
-        await Instance.disposeAll()
+        await Config.invalidate() // kilocode_change - reset cached global config so re-init reads fresh data from disk
         GlobalBus.emit("event", {
           directory: "global",
           payload: {

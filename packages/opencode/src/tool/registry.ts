@@ -16,24 +16,30 @@ import type { Agent } from "../agent/agent"
 import { Tool } from "./tool"
 import { Config } from "../config/config"
 import path from "path"
-import { type ToolContext as PluginToolContext, type ToolDefinition } from "@kilocode/plugin"
+import { type ToolContext as PluginToolContext, type ToolDefinition } from "@kilocode/plugin" // kilocode_change
 import z from "zod"
 import { Plugin } from "../plugin"
 import { ProviderID, type ModelID } from "../provider/schema"
 import { WebSearchTool } from "./websearch"
 import { CodeSearchTool } from "./codesearch"
-import { CodebaseSearchTool } from "./warpgrep" // kilocode_change
+import { KiloToolRegistry } from "../kilocode/tool/registry" // kilocode_change
 import { Flag } from "@/flag/flag"
 import { Log } from "@/util/log"
 import { LspTool } from "./lsp"
 import { Truncate } from "./truncate"
 import { ApplyPatchTool } from "./apply_patch"
-import { RecallTool } from "./recall" // kilocode_change
 import { Glob } from "../util/glob"
 import { pathToFileURL } from "url"
 import { Effect, Layer, ServiceMap } from "effect"
 import { InstanceState } from "@/effect/instance-state"
 import { makeRuntime } from "@/effect/run-service"
+import { Env } from "../env"
+import { Question } from "../question"
+import { Todo } from "../session/todo"
+import { LSP } from "../lsp"
+import { FileTime } from "../file/time"
+import { Instruction } from "../session/instruction"
+import { AppFileSystem } from "../filesystem"
 
 export namespace ToolRegistry {
   const log = Log.create({ service: "tool.registry" })
@@ -43,20 +49,40 @@ export namespace ToolRegistry {
   }
 
   export interface Interface {
-    readonly register: (tool: Tool.Info) => Effect.Effect<void>
     readonly ids: () => Effect.Effect<string[]>
+    readonly named: {
+      task: Tool.Info
+      read: Tool.Info
+    }
     readonly tools: (
       model: { providerID: ProviderID; modelID: ModelID },
       agent?: Agent.Info,
-    ) => Effect.Effect<(Awaited<ReturnType<Tool.Info["init"]>> & { id: string })[]>
+    ) => Effect.Effect<(Tool.Def & { id: string })[]>
   }
 
   export class Service extends ServiceMap.Service<Service, Interface>()("@opencode/ToolRegistry") {}
 
-  export const layer = Layer.effect(
+  export const layer: Layer.Layer<
+    Service,
+    never,
+    | Config.Service
+    | Plugin.Service
+    | Question.Service
+    | Todo.Service
+    | LSP.Service
+    | FileTime.Service
+    | Instruction.Service
+    | AppFileSystem.Service
+  > = Layer.effect(
     Service,
     Effect.gen(function* () {
-      const cache = yield* InstanceState.make<State>(
+      const config = yield* Config.Service
+      const plugin = yield* Plugin.Service
+
+      const build = <T extends Tool.Info>(tool: T | Effect.Effect<T, never, any>) =>
+        Effect.isEffect(tool) ? tool : Effect.succeed(tool)
+
+      const state = yield* InstanceState.make<State>(
         Effect.fn("ToolRegistry.state")(function* (ctx) {
           const custom: Tool.Info[] = []
 
@@ -84,76 +110,83 @@ export namespace ToolRegistry {
             }
           }
 
-          yield* Effect.promise(async () => {
-            const matches = await Config.directories().then((dirs) =>
-              dirs.flatMap((dir) =>
-                Glob.scanSync("{tool,tools}/*.{js,ts}", { cwd: dir, absolute: true, dot: true, symlink: true }),
-              ),
+          const dirs = yield* config.directories()
+          const matches = dirs.flatMap((dir) =>
+            Glob.scanSync("{tool,tools}/*.{js,ts}", { cwd: dir, absolute: true, dot: true, symlink: true }),
+          )
+          if (matches.length) yield* config.waitForDependencies()
+          for (const match of matches) {
+            const namespace = path.basename(match, path.extname(match))
+            const mod = yield* Effect.promise(
+              () => import(process.platform === "win32" ? match : pathToFileURL(match).href),
             )
-            if (matches.length) await Config.waitForDependencies()
-            for (const match of matches) {
-              const namespace = path.basename(match, path.extname(match))
-              const mod = await import(process.platform === "win32" ? match : pathToFileURL(match).href)
-              for (const [id, def] of Object.entries<ToolDefinition>(mod)) {
-                custom.push(fromPlugin(id === "default" ? namespace : `${namespace}_${id}`, def))
-              }
+            for (const [id, def] of Object.entries<ToolDefinition>(mod)) {
+              custom.push(fromPlugin(id === "default" ? namespace : `${namespace}_${id}`, def))
             }
+          }
 
-            const plugins = await Plugin.list()
-            for (const plugin of plugins) {
-              for (const [id, def] of Object.entries(plugin.tool ?? {})) {
-                custom.push(fromPlugin(id, def))
-              }
+          const plugins = yield* plugin.list()
+          for (const p of plugins) {
+            for (const [id, def] of Object.entries(p.tool ?? {})) {
+              custom.push(fromPlugin(id, def))
             }
-          })
+          }
 
           return { custom }
         }),
       )
 
-      async function all(custom: Tool.Info[]): Promise<Tool.Info[]> {
-        const cfg = await Config.get()
-        const question =
-          ["app", "cli", "desktop", "vscode"].includes(Flag.KILO_CLIENT) || Flag.KILO_ENABLE_QUESTION_TOOL
+      const invalid = yield* build(InvalidTool)
+      const ask = yield* build(QuestionTool)
+      const bash = yield* build(BashTool)
+      const read = yield* build(ReadTool)
+      const glob = yield* build(GlobTool)
+      const grep = yield* build(GrepTool)
+      const edit = yield* build(EditTool)
+      const write = yield* build(WriteTool)
+      const task = yield* build(TaskTool)
+      const fetch = yield* build(WebFetchTool)
+      const todo = yield* build(TodoWriteTool)
+      const search = yield* build(WebSearchTool)
+      const code = yield* build(CodeSearchTool)
+      const skill = yield* build(SkillTool)
+      const patch = yield* build(ApplyPatchTool)
+      const lsp = yield* build(LspTool)
+      const batch = yield* build(BatchTool)
+      const plan = yield* build(PlanExitTool)
+      const kilo = yield* KiloToolRegistry.build(build) // kilocode_change
+
+      const all = Effect.fn("ToolRegistry.all")(function* (custom: Tool.Info[]) {
+        const cfg = yield* config.get()
+        const question = KiloToolRegistry.question() // kilocode_change
 
         return [
-          InvalidTool,
-          ...(question ? [QuestionTool] : []),
-          BashTool,
-          ReadTool,
-          GlobTool,
-          GrepTool,
-          EditTool,
-          WriteTool,
-          TaskTool,
-          WebFetchTool,
-          TodoWriteTool,
-          WebSearchTool,
-          CodeSearchTool,
-          ...(cfg.experimental?.codebase_search === true ? [CodebaseSearchTool] : []), // kilocode_change
-          SkillTool,
-          RecallTool, // kilocode_change
-          ApplyPatchTool,
-          ...(Flag.KILO_EXPERIMENTAL_LSP_TOOL ? [LspTool] : []),
-          ...(cfg.experimental?.batch_tool === true ? [BatchTool] : []),
-          PlanExitTool, // kilocode_change - always registered; gated by agent permission instead
+          invalid,
+          ...(question ? [ask] : []),
+          bash,
+          read,
+          glob,
+          grep,
+          edit,
+          write,
+          task,
+          fetch,
+          todo,
+          search,
+          code,
+          skill,
+          patch,
+          ...(Flag.KILO_EXPERIMENTAL_LSP_TOOL ? [lsp] : []),
+          ...(cfg.experimental?.batch_tool === true ? [batch] : []),
+          ...KiloToolRegistry.plan(plan), // kilocode_change
+          ...KiloToolRegistry.extra(kilo, cfg), // kilocode_change
           ...custom,
         ]
-      }
-
-      const register = Effect.fn("ToolRegistry.register")(function* (tool: Tool.Info) {
-        const state = yield* InstanceState.get(cache)
-        const idx = state.custom.findIndex((t) => t.id === tool.id)
-        if (idx >= 0) {
-          state.custom.splice(idx, 1, tool)
-          return
-        }
-        state.custom.push(tool)
       })
 
       const ids = Effect.fn("ToolRegistry.ids")(function* () {
-        const state = yield* InstanceState.get(cache)
-        const tools = yield* Effect.promise(() => all(state.custom))
+        const s = yield* InstanceState.get(state)
+        const tools = yield* all(s.custom)
         return tools.map((t) => t.id)
       })
 
@@ -161,55 +194,63 @@ export namespace ToolRegistry {
         model: { providerID: ProviderID; modelID: ModelID },
         agent?: Agent.Info,
       ) {
-        const state = yield* InstanceState.get(cache)
-        const allTools = yield* Effect.promise(() => all(state.custom))
-        return yield* Effect.promise(() =>
-          Promise.all(
-            allTools
-              .filter((tool) => {
-                // Enable websearch/codesearch for zen users OR via enable flag
-                // kilocode_change start — enable for kilo provider too
-                if (tool.id === "codesearch" || tool.id === "websearch") {
-                  return model.providerID === ProviderID.opencode || model.providerID === "kilo" || Flag.KILO_ENABLE_EXA
-                }
-                // kilocode_change end
+        const s = yield* InstanceState.get(state)
+        const allTools = yield* all(s.custom)
+        const filtered = allTools.filter((tool) => {
+          if (tool.id === "codesearch" || tool.id === "websearch") {
+            return KiloToolRegistry.exa(model.providerID) // kilocode_change
+          }
 
-                // use apply tool in same format as codex
-                const usePatch =
-                  model.modelID.includes("gpt-") && !model.modelID.includes("oss") && !model.modelID.includes("gpt-4")
-                if (tool.id === "apply_patch") return usePatch
-                if (tool.id === "edit" || tool.id === "write") return !usePatch
+          const usePatch =
+            KiloToolRegistry.e2e() || // kilocode_change
+            (model.modelID.includes("gpt-") && !model.modelID.includes("oss") && !model.modelID.includes("gpt-4"))
+          if (tool.id === "apply_patch") return usePatch
+          if (tool.id === "edit" || tool.id === "write") return !usePatch
 
-                return true
-              })
-              .map(async (tool) => {
-                using _ = log.time(tool.id)
-                const next = await tool.init({ agent })
-                const output = {
-                  description: next.description,
-                  parameters: next.parameters,
-                }
-                await Plugin.trigger("tool.definition", { toolID: tool.id }, output)
-                return {
-                  id: tool.id,
-                  ...next,
-                  description: output.description,
-                  parameters: output.parameters,
-                }
-              }),
-          ),
+          return true
+        })
+        return yield* Effect.forEach(
+          filtered,
+          Effect.fnUntraced(function* (tool: Tool.Info) {
+            using _ = log.time(tool.id)
+            const next = yield* Effect.promise(() => tool.init({ agent }))
+            const output = {
+              description: next.description,
+              parameters: next.parameters,
+            }
+            yield* plugin.trigger("tool.definition", { toolID: tool.id }, output)
+            return {
+              id: tool.id,
+              description: output.description,
+              parameters: output.parameters,
+              execute: next.execute,
+              formatValidationError: next.formatValidationError,
+            }
+          }),
+          { concurrency: "unbounded" },
         )
       })
 
-      return Service.of({ register, ids, tools })
+      return Service.of({ ids, named: { task, read }, tools })
     }),
   )
 
-  const { runPromise } = makeRuntime(Service, layer)
+  export const defaultLayer = Layer.unwrap(
+    Effect.sync(() =>
+      layer.pipe(
+        Layer.provide(Config.defaultLayer),
+        Layer.provide(Plugin.defaultLayer),
+        Layer.provide(Question.defaultLayer),
+        Layer.provide(Todo.defaultLayer),
+        Layer.provide(LSP.defaultLayer),
+        Layer.provide(FileTime.defaultLayer),
+        Layer.provide(Instruction.defaultLayer),
+        Layer.provide(AppFileSystem.defaultLayer),
+      ),
+    ),
+  )
 
-  export async function register(tool: Tool.Info) {
-    return runPromise((svc) => svc.register(tool))
-  }
+  const { runPromise } = makeRuntime(Service, defaultLayer)
 
   export async function ids() {
     return runPromise((svc) => svc.ids())
@@ -221,7 +262,7 @@ export namespace ToolRegistry {
       modelID: ModelID
     },
     agent?: Agent.Info,
-  ) {
+  ): Promise<(Tool.Def & { id: string })[]> {
     return runPromise((svc) => svc.tools(model, agent))
   }
 }

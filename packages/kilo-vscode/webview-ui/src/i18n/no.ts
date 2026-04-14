@@ -940,6 +940,8 @@ export const dict = {
   "session.messages.welcome":
     "Kilo Code er en AI-kodingsassistent. Be den om å bygge funksjoner, fikse feil eller forklare kodebasen din.",
   "session.messages.scrollToBottom": "Rull til bunnen",
+  "session.messages.initializing": "Initialiserer...",
+  "session.messages.taskStarting": "Starter...",
   "session.status.writingResponse": "Skriver svar…",
   "session.status.retry": "Prøver på nytt…",
   "session.status.retrying": "Prøver på nytt (forsøk {{ attempt }})… {{ message }}",
@@ -957,6 +959,7 @@ export const dict = {
   "prompt.placeholder.default": "Skriv en melding... (Enter for å sende, Shift+Enter for ny linje)",
 
   "context.usage.sessionCost": "Sesjonskostnad",
+  "context.usage.olderSessions": "{{count}} eldre sesjoner",
   "context.stats.thisSession": "Denne sesjonen",
 
   "time.justNow": "akkurat nå",

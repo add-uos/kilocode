@@ -8,13 +8,12 @@ import { upgrade } from "@/cli/upgrade"
 import { Config } from "@/config/config"
 import { Bus } from "@/bus"
 import { GlobalBus } from "@/bus/global"
-import { createKiloClient } from "@kilocode/sdk/v2"
 import type { Event } from "@kilocode/sdk/v2"
 import { Flag } from "@/flag/flag"
 import { setTimeout as sleep } from "node:timers/promises"
 import { writeHeapSnapshot } from "node:v8"
-import { WorkspaceContext } from "@/control-plane/workspace-context"
 import { WorkspaceID } from "@/control-plane/schema"
+import { Heap } from "@/cli/heap"
 
 await Log.init({
   print: process.argv.includes("--print-logs"),
@@ -24,6 +23,8 @@ await Log.init({
     return "INFO"
   })(),
 })
+
+Heap.start()
 
 process.on("unhandledRejection", (e) => {
   Log.Default.error("rejection", {
@@ -54,45 +55,39 @@ const startEventStream = (input: { directory: string; workspaceID?: string }) =>
   eventStream.abort = abort
   const signal = abort.signal
 
-  const workspaceID = input.workspaceID ? WorkspaceID.make(input.workspaceID) : undefined
-
   ;(async () => {
     while (!signal.aborted) {
-      const shouldReconnect = await WorkspaceContext.provide({
-        workspaceID,
+      const shouldReconnect = await Instance.provide({
+        directory: input.directory,
+        init: InstanceBootstrap,
         fn: () =>
-          Instance.provide({
-            directory: input.directory,
-            init: InstanceBootstrap,
-            fn: () =>
-              new Promise<boolean>((resolve) => {
-                Rpc.emit("event", {
-                  type: "server.connected",
-                  properties: {},
-                } satisfies Event)
+          new Promise<boolean>((resolve) => {
+            Rpc.emit("event", {
+              type: "server.connected",
+              properties: {},
+            } satisfies Event)
 
-                let settled = false
-                const settle = (value: boolean) => {
-                  if (settled) return
-                  settled = true
-                  signal.removeEventListener("abort", onAbort)
-                  unsub()
-                  resolve(value)
-                }
+            let settled = false
+            const settle = (value: boolean) => {
+              if (settled) return
+              settled = true
+              signal.removeEventListener("abort", onAbort)
+              unsub()
+              resolve(value)
+            }
 
-                const unsub = Bus.subscribeAll((event) => {
-                  Rpc.emit("event", event as Event)
-                  if (event.type === Bus.InstanceDisposed.type) {
-                    settle(true)
-                  }
-                })
+            const unsub = Bus.subscribeAll((event) => {
+              Rpc.emit("event", event as Event)
+              if (event.type === Bus.InstanceDisposed.type) {
+                settle(true)
+              }
+            })
 
-                const onAbort = () => {
-                  settle(false)
-                }
+            const onAbort = () => {
+              settle(false)
+            }
 
-                signal.addEventListener("abort", onAbort, { once: true })
-              }),
+            signal.addEventListener("abort", onAbort, { once: true })
           }),
       }).catch((error) => {
         Log.Default.error("event stream subscribe error", {
@@ -157,8 +152,7 @@ export const rpc = {
     })
   },
   async reload() {
-    Config.global.reset()
-    await Instance.disposeAll()
+    await Config.invalidate(true)
   },
   async setWorkspace(input: { workspaceID?: string }) {
     startEventStream({ directory: process.cwd(), workspaceID: input.workspaceID })

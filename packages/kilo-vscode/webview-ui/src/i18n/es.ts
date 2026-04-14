@@ -944,6 +944,8 @@ export const dict = {
   "session.messages.welcome":
     "Kilo Code es un asistente de programación con IA. Pídele que cree funcionalidades, corrija errores o explique tu código.",
   "session.messages.scrollToBottom": "Desplazar al final",
+  "session.messages.initializing": "Inicializando...",
+  "session.messages.taskStarting": "Iniciando...",
   "session.status.writingResponse": "Escribiendo respuesta…",
   "session.status.retry": "Reintentando…",
   "session.status.retrying": "Reintentando (intento {{ attempt }})… {{ message }}",
@@ -961,6 +963,7 @@ export const dict = {
   "prompt.placeholder.default": "Escribe un mensaje... (Enter para enviar, Shift+Enter para nueva línea)",
 
   "context.usage.sessionCost": "Coste de la sesión",
+  "context.usage.olderSessions": "{{count}} sesiones anteriores",
   "context.stats.thisSession": "Esta sesión",
 
   "time.justNow": "justo ahora",

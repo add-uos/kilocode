@@ -1,11 +1,11 @@
 import { BoxRenderable, TextareaRenderable, MouseEvent, PasteEvent, decodePasteBytes, t, dim, fg } from "@opentui/core"
-import { createEffect, createMemo, type JSX, onMount, createSignal, onCleanup, on, Show, Switch, Match } from "solid-js"
+import { createEffect, createMemo, onMount, createSignal, onCleanup, on, Show, Switch, Match } from "solid-js"
 import "opentui-spinner/solid"
 import path from "path"
 import { Filesystem } from "@/util/filesystem"
 import { useLocal } from "@tui/context/local"
 import { useTheme } from "@tui/context/theme"
-import { EmptyBorder } from "@tui/component/border"
+import { EmptyBorder, SplitBorder } from "@tui/component/border"
 import { useSDK } from "@tui/context/sdk"
 import { useRoute } from "@tui/context/route"
 import { useSync } from "@tui/context/sync"
@@ -18,11 +18,11 @@ import { usePromptStash } from "./stash"
 import { DialogStash } from "../dialog-stash"
 import { type AutocompleteRef, Autocomplete } from "./autocomplete"
 import { useCommandDialog } from "../dialog-command"
-import { useKeyboard, useRenderer } from "@opentui/solid"
+import { useRenderer, type JSX } from "@opentui/solid"
 import { Editor } from "@tui/util/editor"
 import { useExit } from "../../context/exit"
 import { Clipboard } from "../../util/clipboard"
-import type { FilePart } from "@kilocode/sdk/v2"
+import type { AssistantMessage, FilePart } from "@kilocode/sdk/v2"
 import { TuiEvent } from "../../event"
 import { iife } from "@/util/iife"
 import { Locale } from "@/util/locale"
@@ -36,6 +36,7 @@ import { useKV } from "../../context/kv"
 import { useTextareaKeybindings } from "../textarea-keybindings"
 import { DialogSkill } from "../dialog-skill"
 import { shouldSummarize as shouldPasteSummary } from "@/kilocode/paste-summary"
+import { CONSOLE_MANAGED_ICON, consoleManagedProviderLabel } from "@tui/util/provider-origin"
 
 export type PromptProps = {
   sessionID?: string
@@ -43,9 +44,14 @@ export type PromptProps = {
   visible?: boolean
   disabled?: boolean
   onSubmit?: () => void
-  ref?: (ref: PromptRef) => void
+  ref?: (ref: PromptRef | undefined) => void
   hint?: JSX.Element
+  right?: JSX.Element
   showPlaceholder?: boolean
+  placeholders?: {
+    normal?: string[]
+    shell?: string[]
+  }
 }
 
 export type PromptRef = {
@@ -58,8 +64,15 @@ export type PromptRef = {
   submit(): void
 }
 
-const PLACEHOLDERS = ["Fix a TODO in the codebase", "What is the tech stack of this project?", "Fix broken tests"]
-const SHELL_PLACEHOLDERS = ["ls -la", "git status", "pwd"]
+const money = new Intl.NumberFormat("en-US", {
+  style: "currency",
+  currency: "USD",
+})
+
+function randomIndex(count: number) {
+  if (count <= 0) return 0
+  return Math.floor(Math.random() * count)
+}
 
 export function Prompt(props: PromptProps) {
   let input: TextareaRenderable
@@ -80,6 +93,18 @@ export function Prompt(props: PromptProps) {
   const renderer = useRenderer()
   const { theme, syntax } = useTheme()
   const kv = useKV()
+  const list = createMemo(() => props.placeholders?.normal ?? [])
+  const shell = createMemo(() => props.placeholders?.shell ?? [])
+  const [auto, setAuto] = createSignal<AutocompleteRef>()
+  const activeOrgName = createMemo(() => sync.data.console_state.activeOrgName)
+  const canSwitchOrgs = createMemo(() => sync.data.console_state.switchableOrgCount > 1)
+  const currentProviderLabel = createMemo(() => {
+    const current = local.model.current()
+    const provider = local.model.parsed().provider
+    if (!current) return provider
+    return consoleManagedProviderLabel(sync.data.console_state.consoleManagedProviders, current.providerID, provider)
+  })
+  const hasRightContent = createMemo(() => Boolean(props.right || activeOrgName()))
 
   function promptModelWarning() {
     toast.show({
@@ -123,6 +148,25 @@ export function Prompt(props: PromptProps) {
     return messages.findLast((m) => m.role === "user")
   })
 
+  const usage = createMemo(() => {
+    if (!props.sessionID) return
+    const msg = sync.data.message[props.sessionID] ?? []
+    const last = msg.findLast((item): item is AssistantMessage => item.role === "assistant" && item.tokens.output > 0)
+    if (!last) return
+
+    const tokens =
+      last.tokens.input + last.tokens.output + last.tokens.reasoning + last.tokens.cache.read + last.tokens.cache.write
+    if (tokens <= 0) return
+
+    const model = sync.data.provider.find((item) => item.id === last.providerID)?.models[last.modelID]
+    const pct = model?.limit.context ? `${Math.round((tokens / model.limit.context) * 100)}%` : undefined
+    const cost = msg.reduce((sum, item) => sum + (item.role === "assistant" ? item.cost : 0), 0)
+    return {
+      context: pct ? `${Locale.number(tokens)} (${pct})` : Locale.number(tokens),
+      cost: cost > 0 ? money.format(cost) : undefined,
+    }
+  })
+
   const [store, setStore] = createStore<{
     prompt: PromptInfo
     mode: "normal" | "shell"
@@ -131,7 +175,7 @@ export function Prompt(props: PromptProps) {
     exitPress: number // kilocode_change - track double ctrl+c to exit
     placeholder: number
   }>({
-    placeholder: Math.floor(Math.random() * PLACEHOLDERS.length),
+    placeholder: randomIndex(list().length),
     prompt: {
       input: "",
       parts: [],
@@ -146,7 +190,7 @@ export function Prompt(props: PromptProps) {
     on(
       () => props.sessionID,
       () => {
-        setStore("placeholder", Math.floor(Math.random() * PLACEHOLDERS.length))
+        setStore("placeholder", randomIndex(list().length))
       },
       { defer: true },
     ),
@@ -357,20 +401,6 @@ export function Prompt(props: PromptProps) {
     ]
   })
 
-  // Windows Terminal 1.25+ handles Ctrl+V on keydown when kitty events are
-  // enabled, but still reports the kitty key-release event. Probe on release.
-  if (process.platform === "win32") {
-    useKeyboard(
-      (evt) => {
-        if (!input.focused) return
-        if (evt.name === "v" && evt.ctrl && evt.eventType === "release") {
-          command.trigger("prompt.paste")
-        }
-      },
-      { release: true },
-    )
-  }
-
   const ref: PromptRef = {
     get focused() {
       return input.focused
@@ -404,9 +434,29 @@ export function Prompt(props: PromptProps) {
     },
   }
 
+  onCleanup(() => {
+    props.ref?.(undefined)
+  })
+
   createEffect(() => {
-    if (props.visible !== false) input?.focus()
-    if (props.visible === false) input?.blur()
+    if (!input || input.isDestroyed) return
+    if (props.visible === false || dialog.stack.length > 0) {
+      input.blur()
+      return
+    }
+
+    // Slot/plugin updates can remount the background prompt while a dialog is open.
+    // Keep focus with the dialog and let the prompt reclaim it after the dialog closes.
+    input.focus()
+  })
+
+  createEffect(() => {
+    if (!input || input.isDestroyed) return
+    input.traits = {
+      capture: auto()?.visible ? ["escape", "navigate", "submit", "tab"] : undefined,
+      suspend: !!props.disabled || store.mode === "shell",
+      status: store.mode === "shell" ? "SHELL" : undefined,
+    }
   })
 
   function restoreExtmarksFromParts(parts: PromptInfo["parts"]) {
@@ -780,12 +830,14 @@ export function Prompt(props: PromptProps) {
   })
 
   const placeholderText = createMemo(() => {
-    if (props.sessionID) return undefined
+    if (props.showPlaceholder === false) return undefined
     if (store.mode === "shell") {
-      const example = SHELL_PLACEHOLDERS[store.placeholder % SHELL_PLACEHOLDERS.length]
+      if (!shell().length) return undefined
+      const example = shell()[store.placeholder % shell().length]
       return `Run a command... "${example}"`
     }
-    return `Ask anything... "${PLACEHOLDERS[store.placeholder % PLACEHOLDERS.length]}"`
+    if (!list().length) return undefined
+    return `Ask anything... "${list()[store.placeholder % list().length]}"`
   })
 
   const spinnerDef = createMemo(() => {
@@ -812,7 +864,10 @@ export function Prompt(props: PromptProps) {
     <>
       <Autocomplete
         sessionID={props.sessionID}
-        ref={(r) => (autocomplete = r)}
+        ref={(r) => {
+          autocomplete = r
+          setAuto(() => r)
+        }}
         anchor={() => anchor}
         input={() => input}
         setPrompt={(cb) => {
@@ -835,8 +890,7 @@ export function Prompt(props: PromptProps) {
           border={["left"]}
           borderColor={highlight()}
           customBorderChars={{
-            ...EmptyBorder,
-            vertical: "┃",
+            ...SplitBorder.customBorderChars,
             bottomLeft: "╹",
           }}
         >
@@ -850,6 +904,7 @@ export function Prompt(props: PromptProps) {
           >
             <textarea
               placeholder={placeholderText()}
+              placeholderColor={theme.textMuted}
               textColor={keybind.leader ? theme.textMuted : theme.text}
               focusedTextColor={keybind.leader ? theme.textMuted : theme.text}
               minHeight={1}
@@ -921,7 +976,7 @@ export function Prompt(props: PromptProps) {
                   }
                 }
                 if (e.name === "!" && input.visualCursor.offset === 0) {
-                  setStore("placeholder", Math.floor(Math.random() * SHELL_PLACEHOLDERS.length))
+                  setStore("placeholder", randomIndex(shell().length))
                   setStore("mode", "shell")
                   e.preventDefault()
                   return
@@ -1047,24 +1102,42 @@ export function Prompt(props: PromptProps) {
               cursorColor={theme.text}
               syntaxStyle={syntax()}
             />
-            <box flexDirection="row" flexShrink={0} paddingTop={1} gap={1}>
-              <text fg={highlight()}>
-                {/* kilocode_change start */}
-                {store.mode === "shell"
-                  ? "Shell"
-                  : (local.agent.current()?.displayName ?? Locale.titlecase(local.agent.current()?.name ?? ""))}{" "}
-                {/* kilocode_change end */}
-              </text>
-              <Show when={store.mode === "normal"}>
-                <box flexDirection="row" gap={1}>
-                  <text flexShrink={0} fg={keybind.leader ? theme.textMuted : theme.text}>
-                    {local.model.parsed().model}
-                  </text>
-                  <text fg={theme.textMuted}>{local.model.parsed().provider}</text>
-                  <Show when={showVariant()}>
-                    <text fg={theme.textMuted}>·</text>
-                    <text>
-                      <span style={{ fg: theme.warning, bold: true }}>{local.model.variant.current()}</span>
+            <box flexDirection="row" flexShrink={0} paddingTop={1} gap={1} justifyContent="space-between">
+              <box flexDirection="row" gap={1}>
+                <text fg={highlight()}>
+                  {/* kilocode_change start */}
+                  {store.mode === "shell"
+                    ? "Shell"
+                    : (local.agent.current()?.displayName ?? Locale.titlecase(local.agent.current()?.name ?? ""))}{" "}
+                  {/* kilocode_change end */}
+                </text>
+                <Show when={store.mode === "normal"}>
+                  <box flexDirection="row" gap={1}>
+                    <text flexShrink={0} fg={keybind.leader ? theme.textMuted : theme.text}>
+                      {local.model.parsed().model}
+                    </text>
+                    <text fg={theme.textMuted}>{currentProviderLabel()}</text>
+                    <Show when={showVariant()}>
+                      <text fg={theme.textMuted}>·</text>
+                      <text>
+                        <span style={{ fg: theme.warning, bold: true }}>{local.model.variant.current()}</span>
+                      </text>
+                    </Show>
+                  </box>
+                </Show>
+              </box>
+              <Show when={hasRightContent()}>
+                <box flexDirection="row" gap={1} alignItems="center">
+                  {props.right}
+                  <Show when={activeOrgName()}>
+                    <text
+                      fg={theme.textMuted}
+                      onMouseUp={() => {
+                        if (!canSwitchOrgs()) return
+                        command.trigger("console.org.switch")
+                      }}
+                    >
+                      {`${CONSOLE_MANAGED_ICON} ${activeOrgName()}`}
                     </text>
                   </Show>
                 </box>
@@ -1100,7 +1173,7 @@ export function Prompt(props: PromptProps) {
           />
         </box>
         <box flexDirection="row" justifyContent="space-between">
-          <Show when={status().type !== "idle"} fallback={<text />}>
+          <Show when={status().type !== "idle"} fallback={props.hint ?? <text />}>
             <box
               flexDirection="row"
               gap={1}
@@ -1191,14 +1264,20 @@ export function Prompt(props: PromptProps) {
               {/* kilocode_change end */}
               <Switch>
                 <Match when={store.mode === "normal"}>
-                  <Show when={local.model.variant.list().length > 0}>
-                    <text fg={theme.text}>
-                      {keybind.print("variant_cycle")} <span style={{ fg: theme.textMuted }}>variants</span>
-                    </text>
-                  </Show>
-                  <text fg={theme.text}>
-                    {keybind.print("agent_cycle")} <span style={{ fg: theme.textMuted }}>agents</span>
-                  </text>
+                  <Switch>
+                    <Match when={usage()}>
+                      {(item) => (
+                        <text fg={theme.textMuted} wrapMode="none">
+                          {[item().context, item().cost].filter(Boolean).join(" · ")}
+                        </text>
+                      )}
+                    </Match>
+                    <Match when={true}>
+                      <text fg={theme.text}>
+                        {keybind.print("agent_cycle")} <span style={{ fg: theme.textMuted }}>agents</span>
+                      </text>
+                    </Match>
+                  </Switch>
                   <text fg={theme.text}>
                     {keybind.print("command_list")} <span style={{ fg: theme.textMuted }}>commands</span>
                   </text>

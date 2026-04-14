@@ -10,8 +10,9 @@ import { NamedError } from "@opencode-ai/util/error"
 import z from "zod"
 import path from "path"
 import { readFileSync, readdirSync, existsSync } from "fs"
-import { Installation } from "../installation"
 import { Flag } from "../flag/flag"
+import { CHANNEL } from "../installation/meta"
+import { InstanceState } from "@/effect/instance-state"
 import { iife } from "@/util/iife"
 import { init } from "#db"
 
@@ -27,16 +28,18 @@ export const NotFoundError = NamedError.create(
 const log = Log.create({ service: "db" })
 
 export namespace Database {
+  // kilocode_change start - always use kilo.db regardless of channel
+  export function getChannelPath() {
+    return path.join(Global.Path.data, "kilo.db")
+  }
+  // kilocode_change end
+
   export const Path = iife(() => {
     if (Flag.KILO_DB) {
       if (Flag.KILO_DB === ":memory:" || path.isAbsolute(Flag.KILO_DB)) return Flag.KILO_DB
       return path.join(Global.Path.data, Flag.KILO_DB)
     }
-    const channel = Installation.CHANNEL
-    if (["latest", "beta"].includes(channel) || Flag.KILO_DISABLE_CHANNEL_DB)
-      return path.join(Global.Path.data, "kilo.db") // kilocode_change
-    const safe = channel.replace(/[^a-zA-Z0-9._-]/g, "-")
-    return path.join(Global.Path.data, `kilo-${safe}.db`) // kilocode_change
+    return getChannelPath()
   })
 
   export type Transaction = SQLiteTransaction<"sync", void>
@@ -138,10 +141,11 @@ export namespace Database {
   }
 
   export function effect(fn: () => any | Promise<any>) {
+    const bound = InstanceState.bind(fn)
     try {
-      ctx.use().effects.push(fn)
+      ctx.use().effects.push(bound)
     } catch {
-      fn()
+      bound()
     }
   }
 
@@ -158,12 +162,8 @@ export namespace Database {
     } catch (err) {
       if (err instanceof Context.NotFound) {
         const effects: (() => void | Promise<void>)[] = []
-        const result = Client().transaction(
-          (tx: TxOrDb) => {
-            return ctx.provide({ tx, effects }, () => callback(tx))
-          },
-          { behavior: options?.behavior },
-        )
+        const txCallback = InstanceState.bind((tx: TxOrDb) => ctx.provide({ tx, effects }, () => callback(tx)))
+        const result = Client().transaction(txCallback, { behavior: options?.behavior })
         for (const effect of effects) effect()
         return result as NotPromise<T>
       }

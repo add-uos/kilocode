@@ -925,6 +925,8 @@ export const dict = {
   "session.messages.empty": "在下方輸入訊息以開始對話。",
   "session.messages.welcome": "Kilo Code 是一個 AI 程式設計助手。讓它幫你建構功能、修復 bug 或解釋程式碼庫。",
   "session.messages.scrollToBottom": "捲動至底部",
+  "session.messages.initializing": "初始化中...",
+  "session.messages.taskStarting": "啟動中...",
   "session.status.writingResponse": "正在撰寫回覆…",
   "session.status.retry": "正在重試…",
   "session.status.retrying": "正在重試（第 {{ attempt }} 次）… {{ message }}",
@@ -942,6 +944,7 @@ export const dict = {
   "prompt.placeholder.default": "輸入訊息... (Enter 送出，Shift+Enter 換行)",
 
   "context.usage.sessionCost": "工作階段費用",
+  "context.usage.olderSessions": "{{count}} 個較早的工作階段",
   "context.stats.thisSession": "此工作階段",
 
   "time.justNow": "剛剛",
