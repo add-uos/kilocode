@@ -16,7 +16,7 @@ const hop = new Set([
   "host",
 ])
 
-type Msg = string | ArrayBuffer | Uint8Array
+type Msg = string | ArrayBuffer
 
 function headers(req: Request, extra?: HeadersInit) {
   const out = new Headers(req.headers)
@@ -46,9 +46,12 @@ function socket(url: string | URL) {
   return next.toString()
 }
 
-function send(ws: { send(data: string | ArrayBuffer | Uint8Array): void }, data: any) {
+function send(ws: { send(data: string | ArrayBuffer): void }, data: any) {
   if (data instanceof Blob) {
     return data.arrayBuffer().then((x) => ws.send(x))
+  }
+  if (data instanceof Uint8Array) {
+    return ws.send(data.buffer as ArrayBuffer)
   }
   return ws.send(data)
 }
@@ -83,8 +86,9 @@ const app = lazy(() =>
           }
         },
         onMessage(event) {
-          const data = event.data
-          if (typeof data !== "string" && !(data instanceof Uint8Array) && !(data instanceof ArrayBuffer)) return
+          const raw = event.data
+          if (typeof raw !== "string" && !(raw instanceof Uint8Array) && !(raw instanceof ArrayBuffer)) return
+          const data: Msg = raw instanceof Uint8Array ? (raw.buffer as ArrayBuffer) : raw
           if (remote?.readyState === WebSocket.OPEN) {
             remote.send(data)
             return

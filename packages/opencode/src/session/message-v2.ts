@@ -560,20 +560,19 @@ export namespace MessageV2 {
 
   export function stripMessageMetadata(info: Info): Info {
     // kilocode_change - exported for testing
-    // Strip summary.diffs before/after from user messages (can be 20+ MB)
+    // Strip summary.diffs patch content from user messages (can be 20+ MB)
     if (info.role !== "user") return info
     const user = info as User
     if (!user.summary?.diffs?.length) return info
-    const has = user.summary.diffs.some((d: Snapshot.FileDiff) => d.before || d.after)
+    const has = user.summary.diffs.some((d: Snapshot.FileDiff) => d.patch)
     if (!has) return info
     return {
       ...user,
       summary: {
         ...user.summary,
-        diffs: user.summary.diffs.map(({ before, after, ...rest }: Snapshot.FileDiff) => ({
+        diffs: user.summary.diffs.map(({ patch: _, ...rest }: Snapshot.FileDiff) => ({
           ...rest,
-          before: "",
-          after: "",
+          patch: "",
         })),
       },
     } as Info
