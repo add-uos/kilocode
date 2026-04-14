@@ -7,7 +7,8 @@
  */
 
 import type { JSX } from "solid-js"
-import type { ProviderAuthAuthorization } from "@opencode-ai/sdk/v2"
+import type { RGBA } from "@opentui/core"
+import type { ProviderAuthAuthorization } from "@kilocode/sdk/v2"
 import { KiloAutoMethod } from "@/kilocode/components/dialog-kilo-auto-method"
 
 // ---------------------------------------------------------------------------
@@ -76,7 +77,7 @@ export function renderAutoMethod(opts: {
  */
 export function renderApiDescription(
   providerID: string,
-  theme: { textMuted: string; text: string; primary: string },
+  theme: { textMuted: RGBA; text: RGBA; primary: RGBA },
 ): (() => JSX.Element) | undefined {
   if (providerID !== "kilo") return undefined
   return () => (

@@ -9,7 +9,9 @@ import { Effect } from "effect"
 
 export namespace KiloToolRegistry {
   /** Build Kilo-specific tools (CodebaseSearch, Recall) */
-  export function build(fn: <T extends Tool.Info>(tool: T | Effect.Effect<T, never, any>) => Effect.Effect<T>) {
+  export function build(
+    fn: <T extends Tool.Info>(tool: T | Effect.Effect<T, never, any>) => Effect.Effect<T, never, any>,
+  ) {
     return Effect.gen(function* () {
       const codebase = yield* fn(CodebaseSearchTool)
       const recall = yield* fn(RecallTool)
