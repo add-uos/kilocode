@@ -166,7 +166,7 @@ export const ChatView: Component<ChatViewProps> = (props) => {
                     {language.t("command.session.new.task")}
                   </Button>
                 </Tooltip>
-                <Show when={canContinueInWorktree()}>
+                <Show when={canContinueInWorktree() && server.gitInstalled()}>
                   <Tooltip value="Continue in isolated worktree" placement="top">
                     <Button
                       variant="ghost"
@@ -188,7 +188,7 @@ export const ChatView: Component<ChatViewProps> = (props) => {
                     </Button>
                   </Tooltip>
                 </Show>
-                <Show when={isSidebar()}>
+                <Show when={isSidebar() && server.gitInstalled()}>
                   <Tooltip
                     value={
                       session.worktreeStats()?.files

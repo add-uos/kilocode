@@ -10,6 +10,7 @@ import type {
   PermissionRequest,
   QuestionRequest,
   SuggestionRequest,
+  SessionNetworkWait, // kilocode_change
   LspStatus,
   McpStatus,
   McpResource,
@@ -29,9 +30,9 @@ import { useArgs } from "./args"
 import { batch, onMount } from "solid-js"
 import { handleSuggestionEvent } from "@/kilocode/suggestion/tui/sync" // kilocode_change
 import { Log } from "@/util/log"
+import { useToast } from "@tui/ui/toast" // kilocode_change
 import type { Path } from "@kilocode/sdk"
 import type { Workspace } from "@kilocode/sdk/v2"
-import { useToast } from "../ui/toast" // kilocode_change
 
 export const { use: useSync, provider: SyncProvider } = createSimpleContext({
   name: "Sync",
@@ -53,6 +54,9 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
       // kilocode_change start
       suggestion: {
         [sessionID: string]: SuggestionRequest[]
+      }
+      network: {
+        [sessionID: string]: SessionNetworkWait[]
       }
       // kilocode_change end
       config: Config
@@ -95,7 +99,10 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
       agent: [],
       permission: {},
       question: {},
-      suggestion: {}, // kilocode_change
+      // kilocode_change start
+      suggestion: {},
+      network: {},
+      // kilocode_change end
       command: [],
       provider: [],
       provider_default: {},
@@ -142,6 +149,7 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
           delete draft.permission[sessionID]
           delete draft.question[sessionID]
           delete draft.suggestion[sessionID]
+          delete draft.network[sessionID]
         }),
       )
       fullSyncedSessions.delete(sessionID)
@@ -235,6 +243,23 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
             }),
           )
           break
+        } // kilocode_change
+
+        // kilocode_change start
+        case "session.network.replied":
+        case "session.network.rejected": {
+          const requests = store.network[event.properties.sessionID]
+          if (!requests) break
+          const match = Binary.search(requests, event.properties.requestID, (r) => r.id)
+          if (!match.found) break
+          setStore(
+            "network",
+            event.properties.sessionID,
+            produce((draft) => {
+              draft.splice(match.index, 1)
+            }),
+          )
+          break
         }
 
         case "suggestion.accepted":
@@ -246,6 +271,38 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
           break
         }
 
+        case "session.network.restored": {
+          const requests = store.network[event.properties.sessionID]
+          if (!requests) break
+          const match = Binary.search(requests, event.properties.requestID, (r) => r.id)
+          if (match.found) {
+            setStore("network", event.properties.sessionID, match.index, "restored", true)
+          }
+          break
+        }
+
+        case "session.network.asked": {
+          const request = event.properties
+          const requests = store.network[request.sessionID]
+          if (!requests) {
+            setStore("network", request.sessionID, [request])
+            break
+          }
+          const match = Binary.search(requests, request.id, (r) => r.id)
+          if (match.found) {
+            setStore("network", request.sessionID, match.index, reconcile(request))
+            break
+          }
+          setStore(
+            "network",
+            request.sessionID,
+            produce((draft) => {
+              draft.splice(match.index, 0, request)
+            }),
+          )
+          break
+        }
+        // kilocode_change end
         case "todo.updated":
           setStore("todo", event.properties.sessionID, event.properties.todos)
           break
@@ -487,7 +544,17 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
             sdk.client.lsp.status().then((x) => setStore("lsp", reconcile(x.data!))),
             sdk.client.mcp.status().then((x) => setStore("mcp", reconcile(x.data!))),
             sdk.client.experimental.resource.list().then((x) => setStore("mcp_resource", reconcile(x.data ?? {}))),
-            sdk.client.formatter.status().then((x) => setStore("formatter", reconcile(x.data!))),
+            sdk.client.formatter.status().then((x) => setStore("formatter", reconcile(x.data!))), // kilocode_change
+            // kilocode_change start
+            sdk.client.network.list().then((x) => {
+              const next: Record<string, SessionNetworkWait[]> = {}
+              for (const item of x.data ?? []) {
+                if (!next[item.sessionID]) next[item.sessionID] = []
+                next[item.sessionID].push(item)
+              }
+              setStore("network", reconcile(next))
+            }),
+            // kilocode_change end
             sdk.client.session.status().then((x) => {
               setStore("session_status", reconcile(x.data!))
             }),

@@ -40,6 +40,7 @@ import {
   buildFamilyCosts,
   buildFamilyLabels,
   buildCostBreakdown,
+  childID,
 } from "./session-utils"
 import { Identifier } from "../utils/id"
 import { resolveModelSelection } from "./model-selection"
@@ -873,11 +874,12 @@ export const SessionProvider: ParentComponent = (props) => {
       return [...msgs, message]
     })
 
-    if (message.role === "user") {
-      const agent = message.agent?.trim()
-      if (agent && agentNames().has(agent)) {
-        setStore("agentSelections", message.sessionID, agent)
-      }
+    // Sync mode picker from any message role (user or assistant).
+    // agentNames() already excludes subagent/hidden agents, so subtask
+    // assistant messages (e.g. "task" agent) are silently ignored.
+    const agent = message.agent?.trim()
+    if (agent && agentNames().has(agent)) {
+      setStore("agentSelections", message.sessionID, agent)
     }
 
     if (message.parts && message.parts.length > 0) {
@@ -941,7 +943,9 @@ export const SessionProvider: ParentComponent = (props) => {
     const info: SessionStatusInfo =
       newStatus === "retry"
         ? { type: "retry", attempt: attempt ?? 0, message: message ?? "", next: next ?? 0 }
-        : { type: newStatus }
+        : newStatus === "offline"
+          ? { type: "offline", message: message ?? "" }
+          : { type: newStatus }
     setStatusMap(sessionID, info)
     // Track busy start time
     if (prev.type === "idle" && newStatus !== "idle") {
@@ -1113,7 +1117,15 @@ export const SessionProvider: ParentComponent = (props) => {
         if (!parts) continue
         for (const p of parts) {
           if (p.type !== "tool") continue
-          const child = (p as { state?: { metadata?: { sessionId?: string } } }).state?.metadata?.sessionId
+          // Webview ToolState omits runtime metadata; task parts still carry it from the backend.
+          const child = childID(
+            p as {
+              type: string
+              tool?: string
+              metadata?: { sessionId?: string }
+              state?: { metadata?: { sessionId?: string } }
+            },
+          )
           if (child && !family.has(child)) {
             family.add(child)
             queue.push(child)

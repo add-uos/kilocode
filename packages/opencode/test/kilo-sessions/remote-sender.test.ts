@@ -8,7 +8,7 @@ import type { RemoteProtocol } from "../../src/kilo-sessions/remote-protocol"
 // kilocode_change start
 import { SessionPrompt } from "../../src/session/prompt"
 import { Question } from "../../src/question"
-import { PermissionNext } from "../../src/permission/next"
+import { Permission } from "../../src/permission"
 import { Suggestion } from "../../src/kilocode/suggestion"
 // kilocode_change end
 
@@ -868,7 +868,7 @@ describe("RemoteSender", () => {
       { id: "question_1", sessionID: "ses_target", questions: [{ type: "text", text: "Continue?" }] } as any,
       { id: "question_2", sessionID: "ses_other", questions: [{ type: "text", text: "Unrelated?" }] } as any,
     ])
-    spyOn(PermissionNext, "list").mockResolvedValue([])
+    spyOn(Permission, "list").mockResolvedValue([])
 
     const sender = RemoteSender.create({
       conn,
@@ -897,7 +897,7 @@ describe("RemoteSender", () => {
 
     spyOn(Suggestion, "list").mockResolvedValue([])
     spyOn(Question, "list").mockResolvedValue([])
-    spyOn(PermissionNext, "list").mockResolvedValue([
+    spyOn(Permission, "list").mockResolvedValue([
       {
         id: "permission_1",
         sessionID: "ses_target",
@@ -952,7 +952,7 @@ describe("RemoteSender", () => {
       { id: "sug_1", sessionID: "ses_other", text: "Review?", actions: [] } as any,
     ])
     spyOn(Question, "list").mockResolvedValue([{ id: "question_1", sessionID: "ses_other", questions: [] } as any])
-    spyOn(PermissionNext, "list").mockResolvedValue([
+    spyOn(Permission, "list").mockResolvedValue([
       {
         id: "permission_1",
         sessionID: "ses_other",

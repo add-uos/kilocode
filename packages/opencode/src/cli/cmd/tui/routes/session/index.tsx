@@ -51,7 +51,6 @@ import { useSDK } from "@tui/context/sdk"
 import { useCommandDialog } from "@tui/component/dialog-command"
 import type { DialogContext } from "@tui/ui/dialog"
 import { useKeybind } from "@tui/context/keybind"
-import { Header } from "./header"
 import { parsePatch } from "diff"
 import { useDialog } from "../../ui/dialog"
 import { TodoItem } from "../../component/todo-item"
@@ -63,6 +62,7 @@ import { DialogTimeline } from "./dialog-timeline"
 import { DialogForkFromTimeline } from "./dialog-fork-from-timeline"
 import { DialogSessionRename } from "../../component/dialog-session-rename"
 import { Sidebar } from "./sidebar"
+import { SubagentFooter } from "./subagent-footer.tsx"
 import { Flag } from "@/flag/flag"
 import { LANGUAGE_EXTENSIONS } from "@/lsp/language"
 import parsers from "../../../../../../parsers-config.ts"
@@ -71,7 +71,6 @@ import { Toast, useToast } from "../../ui/toast"
 import { useKV } from "../../context/kv.tsx"
 import { Editor } from "../../util/editor"
 import stripAnsi from "strip-ansi"
-import { Footer } from "./footer.tsx"
 import { usePromptRef } from "../../context/prompt"
 import { useExit } from "../../context/exit"
 import { Filesystem } from "@/util/filesystem"
@@ -80,11 +79,11 @@ import { PermissionPrompt } from "./permission"
 import { QuestionPrompt } from "./question"
 import { Suggest } from "@/kilocode/suggestion/tui/render" // kilocode_change
 import { SuggestPrompt } from "@/kilocode/suggestion/tui/prompt" // kilocode_change
+import { NetworkPrompt } from "./network" // kilocode_change
 import { DialogExportOptions } from "../../ui/dialog-export-options"
 import { formatTranscript } from "../../util/transcript"
 import { UI } from "@/cli/ui.ts"
 import { useTuiConfig } from "../../context/tui-config"
-
 import { formatMarkdownTables } from "../../util/markdown" // kilocode_change
 import { bell } from "@/kilocode/bell" // kilocode_change
 
@@ -143,16 +142,22 @@ export function Session() {
     if (session()?.parentID) return []
     return children().flatMap((x) => sync.data.question[x.id] ?? [])
   })
+  // kilocode_change start
   const suggestions = createMemo(() => {
     if (session()?.parentID) return []
     return children().flatMap((x) => sync.data.suggestion[x.id] ?? [])
   })
-  const blockingQuestions = createMemo(() => questions().filter((q) => q.blocking !== false)) // kilocode_change
-  const nonBlockingQuestions = createMemo(() => questions().filter((q) => q.blocking === false)) // kilocode_change
-  const question = createMemo(() => blockingQuestions()[0] ?? nonBlockingQuestions()[0]) // kilocode_change
-  const blockingSuggestions = createMemo(() => suggestions().filter((s) => s.blocking !== false)) // kilocode_change
-  const nonBlockingSuggestions = createMemo(() => suggestions().filter((s) => s.blocking === false)) // kilocode_change
-  const suggestion = createMemo(() => blockingSuggestions()[0] ?? nonBlockingSuggestions()[0]) // kilocode_change
+  const network = createMemo(() => {
+    if (session()?.parentID) return []
+    return children().flatMap((x) => sync.data.network[x.id] ?? [])
+  })
+  const blockingQuestions = createMemo(() => questions().filter((q) => q.blocking !== false))
+  const nonBlockingQuestions = createMemo(() => questions().filter((q) => q.blocking === false))
+  const question = createMemo(() => blockingQuestions()[0] ?? nonBlockingQuestions()[0])
+  const blockingSuggestions = createMemo(() => suggestions().filter((s) => s.blocking !== false))
+  const nonBlockingSuggestions = createMemo(() => suggestions().filter((s) => s.blocking === false))
+  const suggestion = createMemo(() => blockingSuggestions()[0] ?? nonBlockingSuggestions()[0])
+  // kilocode_change end
 
   const pending = createMemo(() => {
     return messages().findLast((x) => x.role === "assistant" && !x.time.completed)?.id
@@ -195,7 +200,7 @@ export function Session() {
   )
   createEffect(
     on(
-      () => [route.sessionID, suggestions().length] as const,
+      () => [route.sessionID, suggestions().length + network().length] as const, // kilocode_change
       ([id, len], prev) => {
         if (!prev || prev[0] !== id) return
         if (len > prev[1] && bellEnabled()) bell()
@@ -213,7 +218,6 @@ export function Session() {
   const [showDetails, setShowDetails] = kv.signal("tool_details_visibility", true)
   const [showAssistantMetadata, setShowAssistantMetadata] = kv.signal("assistant_metadata_visibility", true)
   const [showScrollbar, setShowScrollbar] = kv.signal("scrollbar_visible", true)
-  const [showHeader, setShowHeader] = kv.signal("header_visible", true)
   const [diffWrapMode] = kv.signal<"word" | "none">("diff_wrap_mode", "word")
   const [animationsEnabled, setAnimationsEnabled] = kv.signal("animations_enabled", true)
   const [bellEnabled, setBellEnabled] = kv.signal("bell_enabled", true)
@@ -398,7 +402,7 @@ export function Session() {
     if (children().length === 1) return
 
     const sessions = children().filter((x) => !!x.parentID)
-    let next = sessions.findIndex((x) => x.id === session()?.id) + direction
+    let next = sessions.findIndex((x) => x.id === session()?.id) - direction
 
     if (next >= sessions.length) next = 0
     if (next < 0) next = sessions.length - 1
@@ -445,7 +449,12 @@ export function Session() {
             sessionID: route.sessionID,
           })
           .then((res) => copy(res.data!.share!.url))
-          .catch(() => toast.show({ message: "Failed to share session", variant: "error" }))
+          .catch((error) => {
+            toast.show({
+              message: error instanceof Error ? error.message : "Failed to share session",
+              variant: "error",
+            })
+          })
         dialog.clear()
       },
     },
@@ -548,7 +557,12 @@ export function Session() {
             sessionID: route.sessionID,
           })
           .then(() => toast.show({ message: "Session unshared successfully", variant: "success" }))
-          .catch(() => toast.show({ message: "Failed to unshare session", variant: "error" }))
+          .catch((error) => {
+            toast.show({
+              message: error instanceof Error ? error.message : "Failed to unshare session",
+              variant: "error",
+            })
+          })
         dialog.clear()
       },
     },
@@ -685,15 +699,6 @@ export function Session() {
       category: "Session",
       onSelect: (dialog) => {
         setShowScrollbar((prev) => !prev)
-        dialog.clear()
-      },
-    },
-    {
-      title: showHeader() ? "Hide header" : "Show header",
-      value: "session.toggle.header",
-      category: "Session",
-      onSelect: (dialog) => {
-        setShowHeader((prev) => !prev)
         dialog.clear()
       },
     },
@@ -959,12 +964,12 @@ export function Session() {
             const filename = options.filename.trim()
             const filepath = path.join(exportDir, filename)
 
-            await Bun.write(filepath, transcript)
+            await Filesystem.write(filepath, transcript)
 
             // Open with EDITOR if available
             const result = await Editor.open({ value: transcript, renderer })
             if (result !== undefined) {
-              await Bun.write(filepath, result)
+              await Filesystem.write(filepath, result)
             }
 
             toast.show({ message: `Session exported to ${filename}`, variant: "success" })
@@ -1098,11 +1103,8 @@ export function Session() {
       }}
     >
       <box flexDirection="row">
-        <box flexGrow={1} paddingBottom={1} paddingTop={1} paddingLeft={2} paddingRight={2} gap={1}>
+        <box flexGrow={1} paddingBottom={1} paddingLeft={2} paddingRight={2} gap={1}>
           <Show when={session()}>
-            <Show when={showHeader() && (!sidebarVisible() || !wide())}>
-              <Header />
-            </Show>
             <scrollbox
               ref={(r) => (scroll = r)}
               viewportOptions={{
@@ -1121,6 +1123,7 @@ export function Session() {
               flexGrow={1}
               scrollAcceleration={scrollAcceleration()}
             >
+              <box height={1} />
               <For each={messages()}>
                 {(message, index) => (
                   <Switch>
@@ -1243,12 +1246,22 @@ export function Session() {
                 </Show>
                 {/* kilocode_change end */}
               </Show>
+              <Show when={session()?.parentID}>
+                <SubagentFooter />
+              </Show>
+              {/* kilocode_change start */}
+              <Show when={permissions().length === 0 && questions().length === 0 && network().length > 0}>
+                <NetworkPrompt request={network()[0]} />
+              </Show>
+              {/* kilocode_change end */}
+              {/* kilocode_change start */}
               <Prompt
                 visible={
                   !session()?.parentID &&
                   permissions().length === 0 &&
                   blockingQuestions().length === 0 &&
-                  blockingSuggestions().length === 0 // kilocode_change
+                  blockingSuggestions().length === 0 &&
+                  network().length === 0 // kilocode_change
                 }
                 ref={(r) => {
                   prompt = r
@@ -1259,7 +1272,10 @@ export function Session() {
                   }
                 }}
                 disabled={
-                  permissions().length > 0 || blockingQuestions().length > 0 || blockingSuggestions().length > 0 // kilocode_change
+                  permissions().length > 0 ||
+                  blockingQuestions().length > 0 ||
+                  blockingSuggestions().length > 0 ||
+                  network().length > 0 // kilocode_change
                 }
                 onSubmit={() => {
                   toBottom()
@@ -1269,8 +1285,6 @@ export function Session() {
             </box>
           </Show>
           <Toast />
-          {/* kilocode_change */}
-          <Footer />
         </box>
         <Show when={sidebarVisible()}>
           <Switch>
@@ -1318,7 +1332,6 @@ function UserMessage(props: {
   const local = useLocal()
   const text = createMemo(() => props.parts.flatMap((x) => (x.type === "text" && !x.synthetic ? [x] : []))[0])
   const files = createMemo(() => props.parts.flatMap((x) => (x.type === "file" ? [x] : [])))
-  const sync = useSync()
   const { theme } = useTheme()
   const [hover, setHover] = createSignal(false)
   const queued = createMemo(() => props.pending && props.message.id > props.pending)
@@ -1555,6 +1568,8 @@ function TextPart(props: { last: boolean; part: TextPart; message: AssistantMess
               streaming={true}
               content={props.part.text.trim()}
               conceal={ctx.conceal()}
+              fg={theme.markdownText}
+              bg={theme.background}
             />
           </Match>
           <Match when={!Flag.KILO_EXPERIMENTAL_MARKDOWN}>
@@ -1715,17 +1730,6 @@ function GenericTool(props: ToolProps<any>) {
   )
 }
 
-function ToolTitle(props: { fallback: string; when: any; icon: string; children: JSX.Element }) {
-  const { theme } = useTheme()
-  return (
-    <text paddingLeft={3} fg={props.when ? theme.textMuted : theme.text}>
-      <Show fallback={<>~ {props.fallback}</>} when={props.when}>
-        <span style={{ bold: true }}>{props.icon}</span> {props.children}
-      </Show>
-    </text>
-  )
-}
-
 function InlineTool(props: {
   icon: string
   iconColor?: RGBA
@@ -1760,6 +1764,7 @@ function InlineTool(props: {
 
   const denied = createMemo(
     () =>
+      error()?.includes("QuestionRejectedError") ||
       error()?.includes("rejected permission") ||
       error()?.includes("specified a rule") ||
       error()?.includes("user dismissed"),
@@ -2062,10 +2067,7 @@ function WebSearch(props: ToolProps<any>) {
 }
 
 function Task(props: ToolProps<typeof TaskTool>) {
-  const { theme } = useTheme()
-  const keybind = useKeybind()
   const { navigate } = useRoute()
-  const local = useLocal()
   const sync = useSync()
 
   onMount(() => {
@@ -2096,7 +2098,7 @@ function Task(props: ToolProps<typeof TaskTool>) {
 
   const content = createMemo(() => {
     if (!props.input.description) return ""
-    let content = [`Task ${props.input.description}`]
+    let content = [`${Locale.titlecase(props.input.subagent_type ?? "General")} Task — ${props.input.description}`]
 
     if (isRunning() && tools().length > 0) {
       // content[0] += ` · ${tools().length} toolcalls`

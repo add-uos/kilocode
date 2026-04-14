@@ -394,6 +394,7 @@ export function QuestionPrompt(props: {
                         }}
                         initialValue={input()}
                         placeholder="Type your own answer"
+                        placeholderColor={theme.textMuted}
                         minHeight={1}
                         maxHeight={6}
                         textColor={theme.text}
