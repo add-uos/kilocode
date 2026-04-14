@@ -132,8 +132,9 @@ export function QuestionPrompt(props: {
     // Skip processing if a dialog (e.g., command palette) is open
     if (dialog.stack.length > 0) return
 
-    // kilocode_change - avoid intrusive key capture for non-blocking review suggestions
+    // kilocode_change start - avoid intrusive key capture for non-blocking review suggestions
     if (props.nonBlocking && props.inputFocused?.()) return
+    // kilocode_change end
 
     // When editing custom answer textarea
     if (store.editing && !confirm()) {
