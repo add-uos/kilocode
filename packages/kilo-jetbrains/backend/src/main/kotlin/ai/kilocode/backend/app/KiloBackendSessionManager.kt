@@ -97,6 +97,7 @@ class KiloBackendSessionManager(
 
     /** List root sessions for a directory and include current statuses. */
     fun list(dir: String): SessionListDto {
+        seed(dir)
         val raw = requireClient().sessionList(directory = dir, roots = true)
         val mapped = raw.map(::dto)
         val ids = mapped.map { it.id }.toSet()

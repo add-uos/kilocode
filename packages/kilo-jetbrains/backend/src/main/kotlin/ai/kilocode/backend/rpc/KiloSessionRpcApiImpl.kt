@@ -34,11 +34,15 @@ class KiloSessionRpcApiImpl : KiloSessionRpcApi {
     override suspend fun create(directory: String): SessionDto =
         workspaces.get(directory).createSession()
 
-    override suspend fun get(id: String, directory: String): SessionDto =
-        sessions.get(id, directory)
+    override suspend fun get(id: String, directory: String): SessionDto {
+        val dir = sessions.getDirectory(id, directory)
+        return sessions.get(id, dir)
+    }
 
-    override suspend fun delete(id: String, directory: String) =
-        workspaces.get(directory).deleteSession(id)
+    override suspend fun delete(id: String, directory: String) {
+        val dir = sessions.getDirectory(id, directory)
+        workspaces.get(dir).deleteSession(id)
+    }
 
     override suspend fun statuses(): Flow<Map<String, SessionStatusDto>> =
         sessions.statuses

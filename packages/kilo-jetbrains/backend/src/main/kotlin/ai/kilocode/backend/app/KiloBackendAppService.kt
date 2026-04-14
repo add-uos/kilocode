@@ -177,31 +177,32 @@ class KiloBackendAppService private constructor(
                 _appState.value = KiloAppState.Loading(progress.get())
 
                 val errors = mutableListOf<LoadError>()
+                var cfg: Config? = null
+                var prof: KiloProfile200Response? = null
+                var notifs: List<KiloNotifications200ResponseInner> = emptyList()
 
                 try {
                     coroutineScope {
                         launch {
-                            try {
-                                val result = fetchProfile()
-                                progress.updateAndGet { it.copy(profile = result) }
-                                    .also { _appState.value = KiloAppState.Loading(it) }
-                            } catch (e: CancellationException) {
-                                throw e
-                            } catch (e: Exception) {
-                                val err = LoadError(
-                                    resource = "profile",
-                                    status = (e as? ClientException)?.statusCode
-                                        ?: (e as? ServerException)?.statusCode,
-                                    detail = e.message,
-                                )
-                                synchronized(errors) { errors.add(err) }
-                                throw LoadFailure(err)
+                            val result = fetchProfile()
+                            val status = when {
+                                result.error != null -> {
+                                    synchronized(errors) { errors.add(result.error) }
+                                    throw LoadFailure(result.error)
+                                }
+                                result.value != null -> {
+                                    prof = result.value
+                                    ProfileResult.LOADED
+                                }
+                                else -> ProfileResult.NOT_LOGGED_IN
                             }
+                            progress.updateAndGet { it.copy(profile = status) }
+                                .also { _appState.value = KiloAppState.Loading(it) }
                         }
                         launch {
                             val result = fetchWithRetry("config") { fetchConfig() }
                             if (result.value != null) {
-                                config = result.value
+                                cfg = result.value
                                 progress.updateAndGet { it.copy(config = true) }
                                     .also { _appState.value = KiloAppState.Loading(it) }
                             } else {
@@ -213,7 +214,7 @@ class KiloBackendAppService private constructor(
                         launch {
                             val result = fetchWithRetry("notifications") { fetchNotifications() }
                             if (result.value != null) {
-                                notifications = result.value
+                                notifs = result.value
                                 progress.updateAndGet { it.copy(notifications = true) }
                                     .also { _appState.value = KiloAppState.Loading(it) }
                             } else {
@@ -224,18 +225,21 @@ class KiloBackendAppService private constructor(
                         }
                     }
 
-                ensureActive()
-                sessions.start(connection.api!!, connection.events)
-                workspaces.start(connection.api!!, connection.events)
-                _appState.value = KiloAppState.Ready(
-                    AppData(
-                        profile = profile,
-                        config = config!!,
-                        notifications = notifications,
+                    ensureActive()
+                    profile = prof
+                    config = cfg
+                    notifications = notifs
+                    sessions.start(connection.api!!, connection.events)
+                    workspaces.start(connection.api!!, connection.events)
+                    _appState.value = KiloAppState.Ready(
+                        AppData(
+                            profile = prof,
+                            config = cfg!!,
+                            notifications = notifs,
+                        )
                     )
-                )
-                log.info("Application started — config, profile, notifications loaded")
-                startWatchingGlobalSseEvents()
+                    log.info("Application started — config, profile, notifications loaded")
+                    startWatchingGlobalSseEvents()
                 } catch (e: CancellationException) {
                     throw e
                 } catch (e: Exception) {
@@ -249,23 +253,30 @@ class KiloBackendAppService private constructor(
         }
     }
 
-    private suspend fun fetchProfile(): ProfileResult {
-        val client = connection.api ?: return ProfileResult.NOT_LOGGED_IN
+    /**
+     * Fetch the user profile. Returns [FetchResult.ok] with the response
+     * on success, [FetchResult.ok] with `null` when not logged in (401),
+     * or [FetchResult.fail] on other errors. Never throws.
+     */
+    private suspend fun fetchProfile(): FetchResult<KiloProfile200Response?> {
+        val client = connection.api
+            ?: return FetchResult.ok(null)
         return try {
             val response = client.kiloProfile()
-            profile = response
             log.info("Profile: ${response.profile.email}")
-            ProfileResult.LOADED
+            FetchResult.ok(response)
         } catch (e: ClientException) {
             if (e.statusCode == 401) {
                 log.info("Profile: not logged in (401)")
-                return ProfileResult.NOT_LOGGED_IN
+                return FetchResult.ok(null)
             }
             log.warn("Profile fetch failed: HTTP ${e.statusCode}", e)
-            throw e
+            logResponseBody("profile", e)
+            FetchResult.fail("profile", e)
         } catch (e: Exception) {
             log.warn("Profile fetch failed: ${e.message}", e)
-            throw e
+            logResponseBody("profile", e)
+            FetchResult.fail("profile", e)
         }
     }
 

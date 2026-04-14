@@ -25,7 +25,9 @@ import java.util.concurrent.TimeUnit
  * spawns `kilo serve --port 0`, and exposes the result as [State].
  *
  * Concurrency is handled by the owning [KiloBackendAppService] — all public
- * methods are called under its mutex so no internal synchronization is needed.
+ * methods except [exited] are called under its mutex. [exited] is called from
+ * [KiloConnectionService]'s IO dispatcher and is thread-safe via the stale-ref
+ * guard and volatile [process] field.
  */
 class KiloBackendCliManager(
     private val log: KiloLog = IntellijLog(KiloBackendCliManager::class.java),
@@ -37,6 +39,7 @@ class KiloBackendCliManager(
         private val PORT_REGEX = Regex("""listening on http://[\w.]+:(\d+)""")
     }
 
+    @Volatile
     private var process: Process? = null
     private var hook: Thread? = null
 
