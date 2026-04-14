@@ -15,7 +15,7 @@ concurrency:
 
 permissions:
   contents: read
-  checks: write
+  # checks: write // kilocode_change
 
 jobs:
   unit:
