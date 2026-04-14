@@ -31,6 +31,8 @@ async function resolve(prompt: string): Promise<string> {
   const name = prompt.slice(1).split(/\s/, 1)[0]
   if (!name) return prompt
 
+  const args = prompt.slice(1 + name.length).trim()
+
   const cmd = await Command.get(name)
   if (!cmd) {
     log.warn("unknown command in suggestion action", { name })
@@ -40,7 +42,7 @@ async function resolve(prompt: string): Promise<string> {
   try {
     const template = await cmd.template
     log.info("resolved command template", { name, length: template.length })
-    return template
+    return args ? `${template}\n\n${args}` : template
   } catch (err) {
     log.warn("failed to resolve command template", { name, err })
     return prompt
