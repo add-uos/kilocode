@@ -62,10 +62,9 @@ export const ChatView: Component<ChatViewProps> = (props) => {
   const standaloneQuestions = createMemo(() => familyQuestions().filter((q) => !q.tool))
   const standaloneSuggestions = createMemo(() => familySuggestions().filter((s) => !s.tool))
   const permissionRequest = () => familyPermissions().find((p) => p.sessionID === id()) ?? familyPermissions()[0]
-  const blocked = () =>
-    familyPermissions().length > 0 ||
-    familyQuestions().some((q) => q.blocking !== false) ||
-    familySuggestions().some((s) => s.blocking !== false)
+  const blocked = () => familyPermissions().length > 0 || familyQuestions().some((q) => q.blocking !== false)
+  // Session is busy only because a suggestion tool call is pending — prompt should behave as idle
+  const suggesting = () => !blocked() && familySuggestions().length > 0
   const dock = () => !props.readonly || !!permissionRequest()
 
   // When a bottom-dock permission disappears while the session is busy,
@@ -220,7 +219,12 @@ export const ChatView: Component<ChatViewProps> = (props) => {
             </div>
           </Show>
           <Show when={!props.readonly}>
-            <PromptInput blocked={blocked} boxId={props.promptBoxId} pendingSessionID={props.pendingSessionID} />
+            <PromptInput
+              blocked={blocked}
+              suggesting={suggesting}
+              boxId={props.promptBoxId}
+              pendingSessionID={props.pendingSessionID}
+            />
           </Show>
         </div>
       </Show>

@@ -2,15 +2,20 @@
    Suggest Bar
    ============================================ */
 
+/* Strip the card border from tool-part-wrapper when it contains a suggest bar */
+[data-component="tool-part-wrapper"]:has([data-component="suggest-bar"]) {
+  border: none !important;
+  border-radius: 0;
+  overflow: visible;
+}
+
 [data-component="suggest-bar"] {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin: 8px 12px;
+  margin: 0;
   padding: 10px 12px;
-  border: 1px solid var(--border-weak-base);
-  border-radius: 10px;
   background: color-mix(in srgb, var(--background-base) 88%, var(--vscode-textLink-foreground) 12%);
 
   [data-slot="suggest-bar-copy"] {
