@@ -118,18 +118,20 @@ export namespace Suggestion {
     })
   }
 
-  export async function accept(input: { requestID: string; index: number }): Promise<void> {
+  export async function accept(input: { requestID: string; index: number }): Promise<boolean> {
     const s = await state()
     const existing = s.pending[input.requestID]
     if (!existing) {
       log.warn("accept for unknown request", { requestID: input.requestID })
-      return
+      return false
     }
 
     const action = existing.info.actions[input.index]
     if (!action) {
       log.warn("accept for invalid action index", { requestID: input.requestID, index: input.index })
-      return
+      delete s.pending[input.requestID]
+      existing.reject(new Error(`Invalid action index: ${input.index}`))
+      return false
     }
 
     delete s.pending[input.requestID]
@@ -144,6 +146,7 @@ export namespace Suggestion {
     })
 
     existing.resolve(action)
+    return true
   }
 
   export async function dismiss(requestID: string): Promise<void> {
