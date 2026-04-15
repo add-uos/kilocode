@@ -22,7 +22,7 @@ import { ProjectID } from "../project/schema"
 import { WorkspaceID } from "../control-plane/schema"
 import { SessionID, MessageID, PartID } from "./schema"
 import { makeRuntime } from "@/effect/run-service" // kilocode_change - legacy promise helpers
-import { KiloSession } from "@/kilocode/session" // kilocode_change
+import { KiloSession, kiloSessionFork } from "@/kilocode/session" // kilocode_change
 
 import type { Provider } from "@/provider/provider"
 import { Permission } from "@/permission"
@@ -751,7 +751,52 @@ export namespace Session {
     }),
   )
 
-  export const defaultLayer = layer.pipe(Layer.provide(Bus.layer), Layer.provide(Storage.defaultLayer))
+  export const defaultLayer = layer.pipe(Layer.provide(Bus.layer), Layer.provide(Config.defaultLayer))
+
+  const { runPromise } = makeRuntime(Service, defaultLayer)
+
+  export const create = fn(
+    z
+      .object({
+        parentID: SessionID.zod.optional(),
+        title: z.string().optional(),
+        permission: Info.shape.permission,
+        platform: z.string().optional(), // kilocode_change - per-session platform override for telemetry attribution
+        workspaceID: WorkspaceID.zod.optional(),
+      })
+      .optional(),
+    (input) => runPromise((svc) => svc.create(input)),
+  )
+
+  export const fork = kiloSessionFork // kilocode_change
+
+  export const get = fn(SessionID.zod, (id) => runPromise((svc) => svc.get(id)))
+  export const share = fn(SessionID.zod, (id) => runPromise((svc) => svc.share(id)))
+  export const unshare = fn(SessionID.zod, (id) => runPromise((svc) => svc.unshare(id)))
+
+  export const setTitle = fn(z.object({ sessionID: SessionID.zod, title: z.string() }), (input) =>
+    runPromise((svc) => svc.setTitle(input)),
+  )
+
+  export const setArchived = fn(z.object({ sessionID: SessionID.zod, time: z.number().optional() }), (input) =>
+    runPromise((svc) => svc.setArchived(input)),
+  )
+
+  // kilocode_change start
+  export const setPermission = fn(z.object({ sessionID: SessionID.zod, permission: Info.shape.permission }), (input) =>
+    runPromise((svc) => svc.setPermission({ sessionID: input.sessionID, permission: input.permission ?? [] })),
+  )
+  // kilocode_change end
+
+  export const setRevert = fn(
+    z.object({ sessionID: SessionID.zod, revert: Info.shape.revert, summary: Info.shape.summary }),
+    (input) =>
+      runPromise((svc) => svc.setRevert({ sessionID: input.sessionID, revert: input.revert, summary: input.summary })),
+  )
+
+  export const messages = fn(z.object({ sessionID: SessionID.zod, limit: z.number().optional() }), (input) =>
+    runPromise((svc) => svc.messages(input)),
+  )
 
   export function* list(input?: {
     directory?: string

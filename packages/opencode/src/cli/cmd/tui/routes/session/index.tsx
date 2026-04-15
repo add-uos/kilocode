@@ -31,7 +31,7 @@ import type {
   UserMessage,
   TextPart,
   ReasoningPart,
-} from "@kilocode/sdk/v2"
+} from "@kilocode/sdk/v2" // kilocode_change
 import { useLocal } from "@tui/context/local"
 import { Locale } from "@/util/locale"
 import type { Tool } from "@/tool/tool"
@@ -1245,9 +1245,13 @@ export function Session() {
               <Show when={permissions().length > 0}>
                 <PermissionPrompt request={permissions()[0]} />
               </Show>
+              {/* kilocode_change start */}
+              {/* kilocode_change start */}
               <Show when={permissions().length === 0 && questions().length > 0}>
                 <QuestionPrompt request={questions()[0]} />
               </Show>
+              {/* kilocode_change end */}
+              {/* kilocode_change end */}
               <Show when={session()?.parentID}>
                 <SubagentFooter />
               </Show>
