@@ -292,13 +292,14 @@ export namespace KilocodeConfig {
 
   // ── Config merge utilities ───────────────────────────────────────────
 
-  /** Recursively remove keys whose value is null (used after mergeDeep to honor delete sentinels). */
+  /** Recursively remove null values and drop objects left empty after removal. */
   export function stripNulls(obj: Record<string, unknown>): Record<string, unknown> {
     const result: Record<string, unknown> = {}
     for (const [key, value] of Object.entries(obj)) {
       if (value === null) continue
       if (isRecord(value)) {
-        result[key] = stripNulls(value)
+        const stripped = stripNulls(value)
+        if (Object.keys(stripped).length > 0) result[key] = stripped
       } else {
         result[key] = value
       }
