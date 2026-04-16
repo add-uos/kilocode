@@ -37,7 +37,7 @@ console.log("=== publishing ===\n")
 // kilocode_change start - consume changesets on the publish runner so changelog
 // changes are included in the release commit. Previously this ran in the
 // version job on a separate runner whose workspace was discarded.
-if (!Script.preview) {
+{
   await $`bun install`
   const paths = ["packages/kilo-vscode/CHANGELOG.md", "packages/opencode/CHANGELOG.md"]
   const before = new Map<string, string>()
@@ -107,16 +107,14 @@ if (Script.release) {
   // kilocode_change start - mark prerelease GitHub releases accordingly
   // and populate release notes from the changelog updated by changeset above
   const flags = Script.preview ? ["--draft=false", "--prerelease"] : ["--draft=false"]
-  if (!Script.preview) {
-    const changelog = await Bun.file("packages/kilo-vscode/CHANGELOG.md")
-      .text()
-      .catch(() => "")
-    const body = extractLatestSection(changelog) || "No notable changes"
-    const dir = process.env.RUNNER_TEMP ?? "/tmp"
-    const notes = `${dir}/release-notes.txt`
-    await Bun.write(notes, body)
-    flags.push("--notes-file", notes)
-  }
+  const changelog = await Bun.file("packages/kilo-vscode/CHANGELOG.md")
+    .text()
+    .catch(() => "")
+  const body = extractLatestSection(changelog) || "No notable changes"
+  const tmp = process.env.RUNNER_TEMP ?? "/tmp"
+  const notes = `${tmp}/release-notes.txt`
+  await Bun.write(notes, body)
+  flags.push("--notes-file", notes)
   await $`gh release edit v${Script.version} ${flags} --repo ${process.env.GH_REPO}`
   // kilocode_change end
 }
