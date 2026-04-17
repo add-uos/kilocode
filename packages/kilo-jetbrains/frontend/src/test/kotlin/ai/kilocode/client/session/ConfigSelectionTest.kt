@@ -12,7 +12,7 @@ class ConfigSelectionTest : SessionControllerTestBase() {
 
         assertEquals(1, rpc.configs.size)
         assertEquals("kilo/gpt-5", rpc.configs[0].second.model)
-        assertController(
+        assertSession(
             """
             [kilo/gpt-5] [app: DISCONNECTED] [workspace: PENDING]
             """,
@@ -31,7 +31,7 @@ class ConfigSelectionTest : SessionControllerTestBase() {
 
         assertEquals(1, rpc.configs.size)
         assertEquals("plan", rpc.configs[0].second.agent)
-        assertController(
+        assertSession(
             """
             [plan] [app: DISCONNECTED] [workspace: PENDING]
             """,

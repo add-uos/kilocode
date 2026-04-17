@@ -14,7 +14,7 @@ class AppWatchingTest : SessionControllerTestBase() {
         flush()
 
         assertTrue(events.any { it is SessionControllerEvent.AppChanged })
-        assertController(
+        assertSession(
             """
             [app: READY] [workspace: PENDING]
             """,

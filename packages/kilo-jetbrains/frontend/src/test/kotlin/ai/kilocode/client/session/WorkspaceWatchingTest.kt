@@ -16,7 +16,7 @@ class WorkspaceWatchingTest : SessionControllerTestBase() {
         assertEquals("gpt-5", m.model.models[0].id)
         assertFalse(m.model.isReady())
         assertTrue(events.any { it is SessionControllerEvent.WorkspaceReady })
-        assertController(
+        assertSession(
             """
             [code] [kilo/gpt-5] [app: DISCONNECTED] [workspace: READY]
             """,

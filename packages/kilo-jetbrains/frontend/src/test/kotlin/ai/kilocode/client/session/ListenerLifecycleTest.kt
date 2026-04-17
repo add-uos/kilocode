@@ -51,7 +51,7 @@ class ListenerLifecycleTest : SessionControllerTestBase() {
     fun `test session status busy fires StateChanged to Busy`() {
         val (_, _, model) = prompted()
 
-        emit(ChatEventDto.SessionStatusChanged("ses_test", SessionStatusDto("busy", null)), flush = true)
+        emit(ChatEventDto.SessionStatusChanged("ses_test", SessionStatusDto("busy", null)))
 
         assertTrue(model.any { it is SessionModelEvent.StateChanged && (it.state is SessionState.Busy) })
     }

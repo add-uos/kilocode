@@ -122,7 +122,7 @@ abstract class SessionControllerTestBase : BasePlatformTestCase() {
     }
 
     /** Emit a chat event into the fake RPC flow. */
-    protected fun emit(event: ChatEventDto, flush: Boolean = false) {
+    protected fun emit(event: ChatEventDto, flush: Boolean = true) {
         runBlocking { rpc.events.emit(event) }
         if (flush) flush()
     }
@@ -148,7 +148,7 @@ abstract class SessionControllerTestBase : BasePlatformTestCase() {
         assertModel(expected, c.model)
     }
 
-    protected fun assertController(expected: String, c: SessionController, show: Boolean = true) {
+    protected fun assertSession(expected: String, c: SessionController, show: Boolean = true) {
         assertEquals(expected.trimIndent().trim(), c.toString().trim())
         assertEquals(show, c.model.showMessages)
     }

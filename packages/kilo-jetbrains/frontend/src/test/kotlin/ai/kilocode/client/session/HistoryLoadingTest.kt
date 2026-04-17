@@ -33,7 +33,7 @@ class HistoryLoadingTest : SessionControllerTestBase() {
         flush()
 
         assertTrue(events.any { it is SessionControllerEvent.ViewChanged && it.show })
-        assertController(
+        assertSession(
             """
             user#msg1
 

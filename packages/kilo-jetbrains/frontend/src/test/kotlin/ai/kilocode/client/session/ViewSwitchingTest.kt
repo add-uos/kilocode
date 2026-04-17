@@ -10,7 +10,7 @@ class ViewSwitchingTest : SessionControllerTestBase() {
         flush()
 
         assertTrue(events.any { it is SessionControllerEvent.ViewChanged && it.show })
-        assertController(
+        assertSession(
             """
             [app: DISCONNECTED] [workspace: PENDING]
             """,

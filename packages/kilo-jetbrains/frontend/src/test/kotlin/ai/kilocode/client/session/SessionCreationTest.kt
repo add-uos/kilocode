@@ -13,7 +13,7 @@ class SessionCreationTest : SessionControllerTestBase() {
         assertEquals(1, rpc.prompts.size)
         assertEquals("ses_test", rpc.prompts[0].first)
         assertTrue(events.any { it is SessionControllerEvent.ViewChanged && it.show })
-        assertController(
+        assertSession(
             """
             [app: DISCONNECTED] [workspace: PENDING]
             """,
