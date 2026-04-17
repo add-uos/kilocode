@@ -1,4 +1,5 @@
 // kilocode_change - new file
+import { $ } from "bun"
 import { createTwoFilesPatch } from "diff"
 import fs from "node:fs/promises"
 import path from "node:path"
@@ -6,86 +7,6 @@ import z from "zod"
 import { FileIgnore } from "@/file/ignore"
 import { Snapshot } from "@/snapshot"
 import { Log } from "@/util/log"
-
-// ---------------------------------------------------------------------------
-// Git subprocess helper — caps stdout to prevent unbounded native memory growth
-// ---------------------------------------------------------------------------
-
-const MAX_STDOUT = 10 * 1024 * 1024 // 10 MB general cap
-const MAX_FILE_STDOUT = 1 * 1024 * 1024 // 1 MB per-file cap (readBefore)
-
-// Shared decoder — one instance per module avoids re-allocating the ICU state
-// on every git call and keeps the native allocator footprint small.
-const decoder = new TextDecoder()
-
-async function git(
-  args: string[],
-  cwd: string,
-  limit = MAX_STDOUT,
-): Promise<{ ok: boolean; stdout: string; stderr: string; truncated: boolean }> {
-  const proc = Bun.spawn(["git", ...args], {
-    cwd,
-    stdout: "pipe",
-    stderr: "pipe",
-    windowsHide: true,
-  })
-  // Kick off stderr drain immediately so a full stderr pipe can't block the child.
-  // Both stdout and stderr must be drained concurrently to avoid deadlock.
-  const stderrPromise = new Response(proc.stderr).text()
-
-  // Collect chunks by reference (the stream hands us freshly-allocated
-  // Uint8Arrays — no Buffer.from copy needed). A single join at the end
-  // keeps the allocator high-water to exactly one final buffer per call,
-  // which is what mimalloc actually retains in its arenas.
-  const chunks: Uint8Array[] = []
-  let size = 0
-  let truncated = false
-  const reader = proc.stdout.getReader()
-  while (true) {
-    const { done, value } = await reader.read()
-    if (done) break
-    if (truncated) continue // drain pipe but don't store
-    const space = limit - size
-    if (value.length >= space) {
-      if (space > 0) chunks.push(value.subarray(0, space))
-      size = limit
-      truncated = true
-      continue
-    }
-    chunks.push(value)
-    size += value.length
-  }
-  const stderr = await stderrPromise
-  const code = await proc.exited
-  return {
-    ok: code === 0 && !truncated,
-    stdout: join(chunks, size),
-    stderr,
-    truncated,
-  }
-}
-
-// Single-allocation decode: fast path for the common case of one chunk,
-// otherwise one Uint8Array the exact size of the final output plus the
-// decoded string. Avoids the extra copy of chunk-array concatenation.
-function join(chunks: Uint8Array[], size: number): string {
-  if (size === 0) return ""
-  if (chunks.length === 1) return decoder.decode(chunks[0])
-  const buf = new Uint8Array(size)
-  let pos = 0
-  for (const c of chunks) {
-    buf.set(c, pos)
-    pos += c.length
-  }
-  return decoder.decode(buf)
-}
-
-// ---------------------------------------------------------------------------
-// Merge-base cache — avoids redundant git spawns across polling cycles
-// ---------------------------------------------------------------------------
-
-const ancestors = new Map<string, { hash: string; expires: number }>()
-const ANCESTOR_TTL = 30_000 // 30 seconds
 
 export namespace WorktreeDiff {
   export const Item = Snapshot.FileDiff.extend({
@@ -116,37 +37,29 @@ export namespace WorktreeDiff {
     return FileIgnore.match(file)
   }
 
-  /** Clear the merge-base cache. Exported for testing. */
-  export function clearCache() {
-    ancestors.clear()
-  }
-
   async function ancestor(dir: string, base: string, log: Log.Logger) {
-    const key = `${dir}\0${base}`
-    const cached = ancestors.get(key)
-    if (cached && Date.now() < cached.expires) return cached.hash
-
-    const result = await git(["merge-base", "HEAD", base], dir)
-    if (!result.ok) {
+    const result = await $`git merge-base HEAD ${base}`.cwd(dir).quiet().nothrow()
+    if (result.exitCode !== 0) {
       log.warn("git merge-base failed", {
-        stderr: result.stderr.trim(),
+        exitCode: result.exitCode,
+        stderr: result.stderr.toString().trim(),
         dir,
         base,
       })
       return
     }
-    const hash = result.stdout.trim()
-    ancestors.set(key, { hash, expires: Date.now() + ANCESTOR_TTL })
-    return hash
+    return result.stdout.toString().trim()
   }
 
-  async function stats(dir: string, ancestor: string, log: Log.Logger) {
-    const result = await git(["-c", "core.quotepath=false", "diff", "--numstat", "--no-renames", ancestor], dir)
+  async function stats(dir: string, ancestor: string) {
+    const result = await $`git -c core.quotepath=false diff --numstat --no-renames ${ancestor}`
+      .cwd(dir)
+      .quiet()
+      .nothrow()
     const map = new Map<string, { additions: number; deletions: number }>()
-    if (result.truncated) log.warn("git diff --numstat output truncated, counts unavailable", { dir })
-    if (!result.ok) return map
+    if (result.exitCode !== 0) return map
 
-    for (const line of result.stdout.trim().split("\n")) {
+    for (const line of result.stdout.toString().trim().split("\n")) {
       if (!line) continue
       const parts = line.split("\t")
       const add = parts[0]
@@ -163,17 +76,17 @@ export namespace WorktreeDiff {
   }
 
   async function list(dir: string, ancestor: string, log: Log.Logger): Promise<Meta[]> {
-    const nameStatus = await git(["-c", "core.quotepath=false", "diff", "--name-status", "--no-renames", ancestor], dir)
-    if (nameStatus.truncated) {
-      log.warn("git diff --name-status output truncated, diff omitted", { dir })
-    }
-    if (!nameStatus.ok) return []
+    const nameStatus = await $`git -c core.quotepath=false diff --name-status --no-renames ${ancestor}`
+      .cwd(dir)
+      .quiet()
+      .nothrow()
+    if (nameStatus.exitCode !== 0) return []
 
     const result: Meta[] = []
     const seen = new Set<string>()
-    const stat = await stats(dir, ancestor, log)
+    const stat = await stats(dir, ancestor)
 
-    for (const line of nameStatus.stdout.trim().split("\n")) {
+    for (const line of nameStatus.stdout.toString().trim().split("\n")) {
       if (!line) continue
       const parts = line.split("\t")
       const code = parts[0]
@@ -194,16 +107,16 @@ export namespace WorktreeDiff {
       })
     }
 
-    const untracked = await git(["ls-files", "--others", "--exclude-standard"], dir)
-    if (untracked.truncated) {
-      log.warn("git ls-files output truncated, untracked list incomplete", { dir })
-    }
-    if (!untracked.ok) {
-      log.warn("git ls-files failed", { stderr: untracked.stderr.trim() })
+    const untracked = await $`git ls-files --others --exclude-standard`.cwd(dir).quiet().nothrow()
+    if (untracked.exitCode !== 0) {
+      log.warn("git ls-files failed", {
+        exitCode: untracked.exitCode,
+        stderr: untracked.stderr.toString().trim(),
+      })
       return result
     }
 
-    const files = untracked.stdout.trim()
+    const files = untracked.stdout.toString().trim()
     if (files) {
       log.info("untracked files found", { count: files.split("\n").length })
     }
@@ -227,8 +140,8 @@ export namespace WorktreeDiff {
   }
 
   async function detailMeta(dir: string, ancestor: string, file: string): Promise<Meta | undefined> {
-    const tracked = await git(["ls-files", "--error-unmatch", "--", file], dir)
-    if (!tracked.ok) {
+    const tracked = await $`git ls-files --error-unmatch -- ${file}`.cwd(dir).quiet().nothrow()
+    if (tracked.exitCode !== 0) {
       const after = Bun.file(path.join(dir, file))
       if (!(await after.exists())) return undefined
       return {
@@ -242,12 +155,12 @@ export namespace WorktreeDiff {
       }
     }
 
-    const nameStatus = await git(
-      ["-c", "core.quotepath=false", "diff", "--name-status", "--no-renames", ancestor, "--", file],
-      dir,
-    )
-    if (!nameStatus.ok) return undefined
-    const line = nameStatus.stdout.trim().split("\n")[0]
+    const nameStatus = await $`git -c core.quotepath=false diff --name-status --no-renames ${ancestor} -- ${file}`
+      .cwd(dir)
+      .quiet()
+      .nothrow()
+    if (nameStatus.exitCode !== 0) return undefined
+    const line = nameStatus.stdout.toString().trim().split("\n")[0]
     if (!line) return undefined
 
     const parts = line.split("\t")
@@ -255,11 +168,11 @@ export namespace WorktreeDiff {
     const pathPart = parts.slice(1).join("\t") || file
     if (!code) return undefined
 
-    const numstat = await git(
-      ["-c", "core.quotepath=false", "diff", "--numstat", "--no-renames", ancestor, "--", file],
-      dir,
-    )
-    const statLine = numstat.stdout.trim().split("\n")[0]
+    const numstat = await $`git -c core.quotepath=false diff --numstat --no-renames ${ancestor} -- ${file}`
+      .cwd(dir)
+      .quiet()
+      .nothrow()
+    const statLine = numstat.stdout.toString().trim().split("\n")[0]
     const stat = statLine
       ? (() => {
           const values = statLine.split("\t")
@@ -314,11 +227,10 @@ export namespace WorktreeDiff {
     return `${stat.size}:${stat.mtimeMs}`
   }
 
-  async function readBefore(dir: string, ancestor: string, file: string, status: Status, log: Log.Logger) {
+  async function readBefore(dir: string, ancestor: string, file: string, status: Status) {
     if (status === "added") return ""
-    const result = await git(["show", `${ancestor}:${file}`], dir, MAX_FILE_STDOUT)
-    if (result.truncated) log.warn("git show output truncated, before content omitted", { file })
-    return result.ok ? result.stdout : ""
+    const result = await $`git show ${ancestor}:${file}`.cwd(dir).quiet().nothrow()
+    return result.exitCode === 0 ? result.stdout.toString() : ""
   }
 
   async function readAfter(dir: string, file: string, status: Status) {
@@ -327,8 +239,8 @@ export namespace WorktreeDiff {
     return (await result.exists()) ? await result.text() : ""
   }
 
-  async function load(dir: string, ancestor: string, meta: Meta, log: Log.Logger): Promise<Item> {
-    const before = await readBefore(dir, ancestor, meta.file, meta.status, log)
+  async function load(dir: string, ancestor: string, meta: Meta): Promise<Item> {
+    const before = await readBefore(dir, ancestor, meta.file, meta.status)
     const after = await readAfter(dir, meta.file, meta.status)
     const additions = meta.status === "added" && meta.additions === 0 && !meta.tracked ? lines(after) : meta.additions
     return {
@@ -379,7 +291,7 @@ export namespace WorktreeDiff {
     if (!ancestorHash) return undefined
     const item = await detailMeta(input.dir, ancestorHash, input.file)
     if (!item) return undefined
-    return await load(input.dir, ancestorHash, item, log)
+    return await load(input.dir, ancestorHash, item)
   }
 
   export async function full(input: { dir: string; base: string; log?: Log.Logger }) {
@@ -389,7 +301,7 @@ export namespace WorktreeDiff {
     if (!ancestorHash) return []
     log.info("merge-base resolved", { ancestor: ancestorHash.slice(0, 12) })
     const items = await list(input.dir, ancestorHash, log)
-    const result = await Promise.all(items.map((item) => load(input.dir, ancestorHash, item, log)))
+    const result = await Promise.all(items.map((item) => load(input.dir, ancestorHash, item)))
     log.info("diff complete", { totalFiles: result.length })
     return result
   }

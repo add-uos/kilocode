@@ -16,15 +16,6 @@ export interface InstanceContext {
 const context = Context.create<InstanceContext>("instance")
 const cache = new Map<string, Promise<InstanceContext>>()
 
-// kilocode_change start - idle eviction tracking
-// Tracks last-use time and active request count per cached instance so
-// the idle eviction sweeper can dispose instances that have been quiet
-// without killing one that still has an in-flight request (e.g. a
-// running session). Both maps are keyed by the resolved directory.
-const lastUsed = new Map<string, number>()
-const inflight = new Map<string, number>()
-// kilocode_change end
-
 const disposal = {
   all: undefined as Promise<void> | undefined,
 }
@@ -85,20 +76,10 @@ export const Instance = {
         }),
       )
     }
-    // kilocode_change start - track in-flight requests and last-use time
-    // so evictIdle() can dispose idle instances without racing live work.
-    inflight.set(directory, (inflight.get(directory) ?? 0) + 1)
-    lastUsed.set(directory, Date.now())
-    try {
-      const ctx = await existing
-      return await context.provide(ctx, async () => {
-        return input.fn()
-      })
-    } finally {
-      inflight.set(directory, Math.max(0, (inflight.get(directory) ?? 1) - 1))
-      lastUsed.set(directory, Date.now())
-    }
-    // kilocode_change end
+    const ctx = await existing
+    return context.provide(ctx, async () => {
+      return input.fn()
+    })
   },
   get current() {
     return context.use()
@@ -149,8 +130,6 @@ export const Instance = {
     Log.Default.info("reloading instance", { directory })
     await Promise.all([State.dispose(directory), disposeInstance(directory)])
     cache.delete(directory)
-    lastUsed.delete(directory) // kilocode_change
-    inflight.delete(directory) // kilocode_change
     const next = track(directory, boot({ ...input, directory }))
     emit(directory)
     return await next
@@ -160,8 +139,6 @@ export const Instance = {
     Log.Default.info("disposing instance", { directory })
     await Promise.all([State.dispose(directory), disposeInstance(directory)])
     cache.delete(directory)
-    lastUsed.delete(directory) // kilocode_change
-    inflight.delete(directory) // kilocode_change
     emit(directory)
   },
   async disposeAll() {
@@ -195,39 +172,4 @@ export const Instance = {
 
     return disposal.all
   },
-  // kilocode_change start - idle eviction
-  /**
-   * Dispose instances that haven't been used for `idleMs` and have no
-   * in-flight requests. Releases file watchers, LSP, snapshot state,
-   * DB handles, and PubSub queues so the native allocator can actually
-   * return pages to the OS. The next request for that directory will
-   * re-bootstrap from scratch.
-   */
-  async evictIdle(idleMs: number) {
-    const cutoff = Date.now() - idleMs
-    const stale: Array<[string, Promise<InstanceContext>]> = []
-    for (const [dir, used] of lastUsed) {
-      if (used >= cutoff) continue
-      if ((inflight.get(dir) ?? 0) > 0) continue
-      const entry = cache.get(dir)
-      if (entry) stale.push([dir, entry])
-    }
-    for (const [dir, entry] of stale) {
-      if (cache.get(dir) !== entry) continue
-      if ((inflight.get(dir) ?? 0) > 0) continue
-      const ctx = await entry.catch(() => undefined)
-      if (!ctx) {
-        if (cache.get(dir) === entry) cache.delete(dir)
-        lastUsed.delete(dir)
-        inflight.delete(dir)
-        continue
-      }
-      Log.Default.info("evicting idle instance", { directory: dir, idleMs })
-      await context.provide(ctx, async () => {
-        await Instance.dispose()
-      })
-    }
-    return stale.length
-  },
-  // kilocode_change end
 }

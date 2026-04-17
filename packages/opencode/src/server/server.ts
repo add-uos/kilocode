@@ -312,7 +312,6 @@ export namespace Server {
       })
 
     const server = opts.port === 0 ? await start(4096).catch(() => start(0)) : await start(opts.port)
-    KiloServer.startIdleEviction() // kilocode_change - release idle worktree instances
     const addr = server.address()
     if (!addr || typeof addr === "string") {
       throw new Error(`Failed to resolve server address for port ${opts.port}`)
@@ -342,7 +341,6 @@ export namespace Server {
       url: next,
       stop(close?: boolean) {
         closing ??= new Promise((resolve, reject) => {
-          KiloServer.stopIdleEviction() // kilocode_change
           if (mdns) MDNS.unpublish()
           server.close((err) => {
             if (err) {
