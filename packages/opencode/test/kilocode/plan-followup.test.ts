@@ -379,6 +379,40 @@ describe("plan follow-up", () => {
       expect(part.synthetic).toBe(true)
     }))
 
+  test("ask - retargets prompt queue so injected message is visible in scope", () =>
+    withInstance(async () => {
+      const { KiloSessionPromptQueue } = await import("../../src/kilocode/session/prompt-queue")
+      const seeded = await seed({ text: "1. Refactor\n2. Ship" })
+
+      // Simulate the prompt queue having a target set (like during a running loop)
+      const original = seeded.messages.find((m) => m.info.role === "user")!.info.id
+      KiloSessionPromptQueue.retarget(seeded.sessionID, original)
+
+      const pending = PlanFollowup.ask({
+        sessionID: seeded.sessionID,
+        messages: seeded.messages,
+        abort: AbortSignal.any([]),
+      })
+
+      const item = await waitQuestion(seeded.sessionID)
+      expect(item).toBeDefined()
+      if (!item) return
+      await question.reply({
+        requestID: item.id,
+        answers: [[PlanFollowup.ANSWER_CONTINUE]],
+      })
+
+      await expect(pending).resolves.toBe("continue")
+
+      // The injected user message must be visible when scoped
+      const all = await Session.messages({ sessionID: seeded.sessionID })
+      const scoped = KiloSessionPromptQueue.scope(seeded.sessionID, all)
+      const injected = scoped.findLast((m) => m.info.role === "user")
+      expect(injected).toBeDefined()
+      const part = injected!.parts.find((p) => p.type === "text")
+      expect(part?.type === "text" && part.text).toBe("Implement the plan above.")
+    }))
+
   test("ask - creates a new session on Start new session with handover and todos", () =>
     withInstance(async () => {
       const get = spyOn(PlanFollowupRuntime, "agent").mockImplementation(async (name: string) => {

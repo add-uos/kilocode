@@ -27,6 +27,15 @@ export namespace KiloSessionPromptQueue {
     })
   }
 
+  /**
+   * Advance the visible-message boundary for a running loop.
+   * Called after PlanFollowup.inject() so the injected user message is not
+   * hidden by scope().
+   */
+  export function retarget(sessionID: SessionID, id: MessageID) {
+    targets.set(sessionID, id)
+  }
+
   export function scope(sessionID: SessionID, messages: MessageV2.WithParts[]) {
     const target = targets.get(sessionID)
     if (!target) return messages
