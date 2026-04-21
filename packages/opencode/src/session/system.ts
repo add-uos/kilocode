@@ -21,6 +21,7 @@ import { Skill } from "@/skill"
 // kilocode_change start
 import SOUL from "../kilocode/soul.txt"
 import { staticEnvLines, type EditorContext } from "../kilocode/editor-context"
+import { isLing } from "../kilocode/model-match"
 // kilocode_change end
 
 export namespace SystemPrompt {
@@ -31,14 +32,6 @@ export namespace SystemPrompt {
 
   export function soul() {
     return SOUL.trim()
-  }
-  // kilocode_change end
-
-  // kilocode_change start
-  const LING_EXCLUDES = ["kling", "bling", "spelling"]
-  function isLing(id: string) {
-    const lower = id.toLowerCase()
-    return lower.includes("ling") && !LING_EXCLUDES.some((s) => lower.includes(s))
   }
   // kilocode_change end
 

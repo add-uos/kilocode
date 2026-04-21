@@ -7,6 +7,7 @@ import type { ModelsDev } from "./models"
 import { iife } from "@/util/iife"
 import { Flag } from "@/flag/flag"
 import { kiloProviderOptions } from "@/kilocode/provider-options"
+import { isLing } from "@/kilocode/model-match" // kilocode_change
 
 type Modality = NonNullable<ModelsDev.Model["modalities"]>["input"][number]
 
@@ -332,14 +333,6 @@ export namespace ProviderTransform {
 
     return msgs
   }
-
-  // kilocode_change start
-  const LING_EXCLUDES = ["kling", "bling", "spelling"]
-  function isLing(id: string) {
-    const lower = id.toLowerCase()
-    return lower.includes("ling") && !LING_EXCLUDES.some((s) => lower.includes(s))
-  }
-  // kilocode_change end
 
   export function temperature(model: Provider.Model) {
     const id = model.id.toLowerCase()
